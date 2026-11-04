@@ -223,9 +223,7 @@ if (!configured) {
   onAuthStateChanged(auth, async u => {
     if (!u) { signInAnonymously(auth).catch(() => {}); return; }
     user = u; isAdmin = false;
-    if (!u.isAnonymous && u.email) {
-      try { isAdmin = (await getDoc(doc(db, "admins", u.email))).exists(); } catch (e) { isAdmin = false; }
-    }
+    if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     $("form").hidden = false;
     syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin();
   });
@@ -278,6 +276,23 @@ if (!configured) {
     } catch (e) { st.textContent = T[lang].fail; }
     liveBusy = false;
   });
+}
+
+// 관리자 확인: 로그인 직후에는 데이터베이스가 새 로그인 정보를 늦게 받을 수 있어서 몇 번 다시 시도해요.
+async function checkAdmin(u) {
+  const email = String(u.email).trim().toLowerCase();
+  for (let i = 0; i < 4; i++) {
+    try {
+      await u.getIdToken(i > 0);
+      const snap = await getDoc(doc(db, "admins", email));
+      console.info("[관리자 확인]", email, snap.exists() ? "관리자 맞음" : "admins 에 이 이메일 문서가 없음");
+      return snap.exists();
+    } catch (e) {
+      console.warn("[관리자 확인 실패]", email, e && (e.code || e.message));
+      await new Promise(r => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  return false;
 }
 
 function syncMine() {
