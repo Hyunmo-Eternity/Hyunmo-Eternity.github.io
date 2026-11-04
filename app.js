@@ -180,7 +180,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderLive(); renderPlayer(); renderAdmin();
+  counts(); disc(); renderNotes(); renderClips(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -192,6 +192,101 @@ function renderAdmin() {
   $("clipform").hidden = !isAdmin;
   $("adminmsg").textContent = (user && !user.isAnonymous && !isAdmin) ? t.not_admin : "";
 }
+
+/* ---------- 꾸밈: 문구 ---------- */
+const X = {
+  ko: { tick: "전 세계 팬들의 응원", bday: "🎂 오늘은 현모의 생일이에요! 생일 축하해요!", debut: n => `🎉 오늘은 현모 데뷔 ${n}주년! 축하해요!` },
+  en: { tick: "Cheers from around the world", bday: "🎂 It's Hyunmo's birthday today! Happy birthday!", debut: n => `🎉 Today is Hyunmo's ${n}-year debut anniversary!` },
+  th: { tick: "กำลังใจจากแฟน ๆ ทั่วโลก", bday: "🎂 วันนี้วันเกิดฮยอนโม! สุขสันต์วันเกิดนะ!", debut: n => `🎉 วันนี้ครบรอบ ${n} ปีการเดบิวต์ของฮยอนโม!` },
+  ja: { tick: "世界中のファンからの応援", bday: "🎂 今日はヒョンモの誕生日！お誕生日おめでとう！", debut: n => `🎉 今日はヒョンモのデビュー${n}周年！おめでとう！` }
+};
+const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- 꾸밈: 응원 메시지 전광판 ---------- */
+const ticker = document.createElement("div");
+ticker.className = "ticker"; ticker.hidden = true; ticker.setAttribute("aria-label", "fan messages");
+ticker.innerHTML = '<span class="tk-label"></span><div class="tk-view"><div class="tk-track"></div></div>';
+document.querySelector(".bar").after(ticker);
+function renderTicker() {
+  ticker.querySelector(".tk-label").textContent = "💌 " + X[lang].tick;
+  const list = (notes || []).slice(0, 20);
+  ticker.hidden = !list.length;
+  if (!list.length) return;
+  const track = ticker.querySelector(".tk-track"); track.textContent = "";
+  const add = () => list.forEach(n => {
+    const it = document.createElement("span"); it.className = "tk-item";
+    const b = document.createElement("b"); b.textContent = `${FLAG[n.from] || "🌏"} ${n.nick}`;
+    it.append(b, document.createTextNode(" " + String(n.msg).replace(/\s+/g, " ").slice(0, 80)));
+    track.appendChild(it);
+  });
+  add(); add(); // 두 번 이어 붙여서 끊김 없이 흐르게
+  track.style.setProperty("--dur", Math.max(20, list.length * 7) + "s");
+}
+
+/* ---------- 꾸밈: 꽃잎 흩날리기 + 기념일 꽃가루 ---------- */
+const sky = document.createElement("canvas"); sky.className = "petals"; sky.setAttribute("aria-hidden", "true");
+document.body.appendChild(sky);
+const ctx = sky.getContext("2d");
+const COLORS = ["#F4A6B8", "#F7C1CF", "#FAD4DD", "#E98AA5", "#BFE3CF", "#FFE3A3", "#C9D8FF"];
+let petals = [], burst = [], W = 0, H = 0, dpr = 1;
+function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; sky.width = W * dpr; sky.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+function newPetal(top) {
+  return { x: Math.random() * W, y: top ? -20 : Math.random() * H, r: 5 + Math.random() * 6, vy: 0.35 + Math.random() * 0.6,
+    sway: Math.random() * Math.PI * 2, sw: 0.4 + Math.random() * 0.8, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.03,
+    c: COLORS[Math.floor(Math.random() * 3)] };
+}
+function drawPetal(p, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c;
+  ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.6, p.r, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function frame() {
+  ctx.clearRect(0, 0, W, H);
+  for (const p of petals) {
+    p.sway += 0.01; p.y += p.vy; p.x += Math.sin(p.sway) * p.sw; p.rot += p.vr;
+    if (p.y > H + 20) Object.assign(p, newPetal(true));
+    drawPetal(p, 0.55);
+  }
+  for (let i = burst.length - 1; i >= 0; i--) {
+    const b = burst[i]; b.vy += 0.06; b.x += b.vx; b.y += b.vy; b.rot += b.vr; b.life--;
+    drawPetal(b, Math.min(1, b.life / 60));
+    if (b.life <= 0 || b.y > H + 30) burst.splice(i, 1);
+  }
+  if (!document.hidden) requestAnimationFrame(frame); else running = false;
+}
+let running = false;
+function start() { if (!running && !reduceMotion) { running = true; requestAnimationFrame(frame); } }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
+addEventListener("resize", size);
+size();
+const petalCount = innerWidth < 600 ? 10 : 18;
+for (let i = 0; i < petalCount; i++) petals.push(newPetal(false));
+start();
+function confetti() {
+  if (reduceMotion) return;
+  for (let i = 0; i < 140; i++) burst.push({ x: W / 2 + (Math.random() - .5) * 120, y: H * 0.3, vx: (Math.random() - .5) * 9, vy: -4 - Math.random() * 6,
+    r: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.3, c: COLORS[Math.floor(Math.random() * COLORS.length)], life: 180 + Math.random() * 80 });
+  start();
+}
+
+/* ---------- 꾸밈: 생일·데뷔 기념일 ---------- */
+const celebrate = document.createElement("div"); celebrate.className = "celebrate"; celebrate.hidden = true;
+document.querySelector(".hero").prepend(celebrate);
+function celebrateKind() {
+  const n = new Date(Date.now() + 9 * 3600e3), m = n.getUTCMonth() + 1, d = n.getUTCDate();
+  if (location.hash === "#birthday" || (m === 9 && d === 11)) return { k: "bday" };
+  if (location.hash === "#debut" || (m === 11 && d === 4)) return { k: "debut", n: n.getUTCFullYear() - 2020 };
+  return null;
+}
+let celebrated = false;
+function renderCelebrate() {
+  const c = celebrateKind();
+  celebrate.hidden = !c;
+  if (!c) return;
+  celebrate.textContent = c.k === "bday" ? X[lang].bday : X[lang].debut(c.n);
+  if (!celebrated) { celebrated = true; setTimeout(confetti, 400); }
+}
+celebrate.addEventListener("click", confetti);
 
 ring();
 $("liveurl").value = DEFAULT_LIVE_URL;
@@ -212,7 +307,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "guestbook"), orderBy("at", "desc"), limit(300)), snap => {
     clearTimeout(slow);
     notes = snap.docs.map(d => { const v = d.data({ serverTimestamps: "estimate" }); return { id: d.id, ...v, at: v.at?.toDate?.() || null }; });
-    syncMine(); renderNotes();
+    syncMine(); renderNotes(); renderTicker();
   }, () => { clearTimeout(slow); notesState = "slow"; notes = null; renderNotes(); });
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
