@@ -232,3 +232,21 @@ canvas.petals{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;
 .clip .embed.insta{aspect-ratio:4/5.8;background:#fff}
 @media (min-width:560px){.clip.wide{grid-column:span 2}}
 .clips{align-items:start}
+
+/* --- 팬 영상 추천 / 승인 --- */
+details.suggest{margin-top:16px;background:var(--paper);border-radius:16px;padding:12px 16px;box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent)}
+details.suggest summary{cursor:pointer;font-weight:700;color:var(--petal);list-style:none}
+details.suggest summary::-webkit-details-marker{display:none}
+details.suggest summary::after{content:" ▾";color:var(--muted)}
+details.suggest[open] summary::after{content:" ▴"}
+form.sgf{display:grid;gap:10px;margin-top:12px}
+.pending{background:var(--paper);border:2px dashed var(--petal);border-radius:16px;padding:14px 16px;margin-bottom:16px;display:grid;gap:10px}
+.pending h3{margin:0;font-size:15px;color:var(--petal)}
+.prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pinfo{flex:1 1 220px;min-width:0;display:grid}
+.pinfo a{color:var(--ink);font-weight:700;overflow-wrap:anywhere}
+.pinfo small{color:var(--muted)}
+.prow button{font:inherit;font-size:13px;border-radius:999px;padding:5px 14px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted)}
+.prow button.approve{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.clip .info .m .by{color:var(--muted)}
+.clip .info .m{flex-wrap:wrap}

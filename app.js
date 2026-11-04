@@ -193,11 +193,83 @@ function renderClips() {
     const m = document.createElement("div"); m.className = "m";
     const tag = document.createElement("span"); tag.className = "ptag " + v.p; tag.textContent = PLAT[v.p]; m.appendChild(tag);
     const d = document.createElement("span"); d.textContent = c.date || ""; m.appendChild(d);
+    if (c.byNick) { const by = document.createElement("span"); by.className = "by"; by.textContent = `${t.sg_by} ${FLAG[c.byFrom] || "🌏"} ${c.byNick}`; m.appendChild(by); }
     const go = document.createElement("a"); go.href = c.url; go.target = "_blank"; go.rel = "noopener"; go.className = "open"; go.textContent = "↗"; go.setAttribute("aria-label", t.watch); m.appendChild(go);
     if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "clips", c.id)).catch(() => {}); m.appendChild(x); }
     info.appendChild(m); card.appendChild(info); box.appendChild(card);
   }
 }
+
+/* ---------- 팬 영상 추천 → 관리자 승인 ---------- */
+let pending = [], unsubPending = null;
+const sgBox = document.createElement("details"); sgBox.className = "suggest";
+sgBox.innerHTML = `<summary></summary>
+  <form class="sgf" id="sgform">
+    <label><span data-k="l_url"></span><input id="sg_url" type="url" inputmode="url" required></label>
+    <div class="row">
+      <label><span data-k="l_song"></span><input id="sg_song" maxlength="60" required></label>
+      <label><span data-k="l_nick"></span><input id="sg_nick" maxlength="24" required autocomplete="nickname"></label>
+      <label><span data-k="l_from"></span><select id="sg_from"></select></label>
+    </div>
+    <div class="actions"><button class="go" type="submit" id="sg_send"></button><span class="status" id="sg_status" aria-live="polite"></span></div>
+  </form>`;
+$("cliplist").after(sgBox);
+sgBox.querySelector("#sg_from").innerHTML = $("from").innerHTML;
+const pendBox = document.createElement("div"); pendBox.className = "pending"; pendBox.hidden = true;
+$("clipform").after(pendBox);
+function renderSuggest() {
+  const t = T[lang];
+  sgBox.querySelector("summary").textContent = "💌 " + t.sg_open;
+  sgBox.querySelectorAll("[data-k]").forEach(el => el.textContent = t[el.dataset.k]);
+  $("sg_send").textContent = t.sg_send;
+  sgBox.hidden = isAdmin;
+  if (mine && !$("sg_nick").value) { $("sg_nick").value = mine.nick || ""; $("sg_from").value = mine.from || "XX"; }
+  // 관리자: 승인 대기 목록
+  pendBox.hidden = !isAdmin || !pending.length;
+  pendBox.textContent = "";
+  if (pendBox.hidden) return;
+  const h = document.createElement("h3"); h.textContent = `${t.sg_pending} (${pending.length})`; pendBox.appendChild(h);
+  for (const g of pending) {
+    const row = document.createElement("div"); row.className = "prow";
+    const info = document.createElement("div"); info.className = "pinfo";
+    const v = parseVideo(g.url);
+    const a = document.createElement("a"); a.href = g.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = `${v ? PLAT[v.p] : "?"} · ${g.song} ↗`;
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[g.from] || "🌏"} ${g.nick}`;
+    info.append(a, by);
+    const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
+    const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
+    ok.onclick = async () => {
+      ok.disabled = no.disabled = true;
+      try {
+        await addDoc(collection(db, "clips"), { url: g.url, song: g.song, cap: "", date: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), at: serverTimestamp(), byNick: g.nick, byFrom: g.from });
+        await deleteDoc(doc(db, "suggestions", g.id));
+      } catch (e) { ok.disabled = no.disabled = false; }
+    };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "suggestions", g.id)).catch(() => { no.disabled = false; }); };
+    row.append(info, ok, no); pendBox.appendChild(row);
+  }
+}
+function watchPending() {
+  if (unsubPending) { unsubPending(); unsubPending = null; }
+  pending = [];
+  if (!isAdmin) return renderSuggest();
+  unsubPending = onSnapshot(query(collection(db, "suggestions"), orderBy("at", "asc"), limit(100)), snap => {
+    pending = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderSuggest();
+  }, () => {});
+}
+$("sgform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("sg_status"), btn = $("sg_send");
+  const url = $("sg_url").value.trim(), song = $("sg_song").value.trim().slice(0, 60), nick = $("sg_nick").value.trim().slice(0, 24), from = $("sg_from").value;
+  if (!parseVideo(url)) { st.textContent = t.badurl; return; }
+  if (!song || !nick || !user || !db) return;
+  btn.disabled = true; st.textContent = "";
+  try {
+    await addDoc(collection(db, "suggestions"), { url, song, nick, from, by: user.uid, at: serverTimestamp() });
+    st.textContent = t.sg_thanks; $("sg_url").value = ""; $("sg_song").value = "";
+  } catch (err) { st.textContent = t.fail; }
+  btn.disabled = false;
+});
 
 /* ---------- live ---------- */
 const isLive = () => !!(live && live.on && live.url && Date.now() - (live.since || 0) < LIVE_MAX);
@@ -225,7 +297,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -365,7 +437,7 @@ if (!configured) {
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     $("form").hidden = false;
-    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin();
+    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending();
   });
 
   $("adminbtn").addEventListener("click", async () => {
