@@ -40,7 +40,6 @@ ja:{admin_in:"管理者ログイン",admin_out:"ログアウト",not_admin:"こ�
 
 export const DISC=[
  {d:"2020.11.04",t:"초록빛 꿈",g:{ko:"Green Dream",en:"Green Dream",th:"Green Dream",ja:"緑色の夢"},tag:"debut"},
- {d:"2022",t:"닭장",g:{ko:"싱글",en:"The Coop · single",th:"The Coop · ซิงเกิล",ja:"鶏小屋 · シングル"}},
  {d:"2022",t:"How Have You Been",g:{ko:"「스타 어웨이크닝」 Part 2",en:"“Stars Awakening” Part 2",th:"“Stars Awakening” Part 2",ja:"「スターアウェイキング」Part 2"}},
  {d:"2024.06.03",t:"お花の指輪",g:{ko:"꽃반지 일본어 싱글",en:"Flower Ring · Japanese single",th:"Flower Ring · ซิงเกิลภาษาญี่ปุ่น",ja:"お花の指輪"},tag:"jp"},
  {d:"2024.07.04",t:"꽃반지",g:{ko:"Flower Ring",en:"Flower Ring",th:"Flower Ring",ja:"花の指輪"}},
