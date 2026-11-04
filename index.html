@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hyunmo Fan Garden · 현모 팬사이트</title>
+<meta name="description" content="현모(Hyunmo) 비공식 팬사이트 · Unofficial fan site for Hyunmo · 한국어 / English / ไทย / 日本語">
+<meta property="og:title" content="Hyunmo Fan Garden · 현모 팬사이트">
+<meta property="og:description" content="현모의 노래, 틱톡 라이브, 응원 메시지 · Songs, TikTok lives and messages for Hyunmo">
+<meta name="theme-color" content="#2F6B4F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Noto+Sans+Thai:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <nav>
+      <a href="#profile" data-i="nav_profile">프로필</a>
+      <a href="#music" data-i="nav_music">음악</a>
+      <a href="#clips" data-i="nav_clips">영상</a>
+      <a href="#cheers" data-i="nav_cheers">응원</a>
+      <a href="#links" data-i="nav_links">링크</a>
+    </nav>
+    <a class="livepill" id="livepill" href="#top" target="_blank" rel="noopener">LIVE</a>
+    <div class="langs" role="group" aria-label="Language">
+      <button type="button" data-lang="ko">한국어</button>
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="th">ไทย</button>
+      <button type="button" data-lang="ja">日本語</button>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="kicker" data-i="kicker">현모 팬이 만든 비공식 팬사이트</div>
+    <div class="ring">
+      <svg id="ring" viewBox="0 0 200 200" aria-hidden="true"></svg>
+      <div><span class="name">현모</span><span class="rom">Hyunmo</span></div>
+    </div>
+    <p class="tag" data-i="tag">초록빛 꿈을 노래하는 목소리</p>
+    <div class="counts">
+      <div class="count"><small data-i="since">데뷔한 지</small><b id="dplus">D+0</b></div>
+      <div class="count hi"><small data-i="bday">생일까지</small><b id="dbday">D-0</b></div>
+    </div>
+    <div class="player" id="player" hidden>
+      <button type="button" id="playbtn" data-i="play">♪ 현모 노래 듣기</button>
+      <button type="button" class="skip" id="nextbtn" aria-label="Next">▶▶</button>
+      <span class="np" id="np" hidden><span data-i="now">지금 재생 중</span> · <b id="nptitle"></b></span>
+      <audio id="audio" preload="none"></audio>
+    </div>
+    <div class="live" id="live" hidden>
+      <span class="on"><span class="dot"></span><span data-i="live_on">지금 틱톡 라이브 중</span></span>
+      <div class="head" data-i="live_head">현모가 지금 라이브로 노래하고 있어요</div>
+      <a class="go" id="livego" href="#" target="_blank" rel="noopener" data-i="live_go">라이브 보러 가기 ↗</a>
+    </div>
+    <div class="admin" id="admin" hidden>
+      <input id="liveurl" type="url" inputmode="url" value="https://www.tiktok.com/@hyunmomo/live" placeholder="https://www.tiktok.com/@hyunmomo/live" aria-label="TikTok live link">
+      <button type="button" class="start" id="livebtn" data-i="b_live_start">라이브 시작 알리기</button>
+      <span id="livest" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <section id="profile">
+    <h2 data-i="nav_profile">프로필</h2>
+    <p class="intro" data-i="intro"></p>
+    <dl class="facts">
+      <dt data-i="f_name">본명</dt><dd data-i="v_name">권현모</dd>
+      <dt data-i="f_birth">생일</dt><dd>2000.09.11</dd>
+      <dt data-i="f_debut">데뷔</dt><dd data-i="v_debut">2020.11.04 「초록빛 꿈」</dd>
+      <dt data-i="f_genre">장르</dt><dd data-i="v_genre">발라드</dd>
+      <dt data-i="f_agency">소속사</dt><dd>Jimmy Makes Music</dd>
+      <dt data-i="f_show">출연</dt><dd data-i="v_show">채널A 「스타 어웨이크닝」 (2022)</dd>
+    </dl>
+  </section>
+
+  <section id="music">
+    <h2 data-i="nav_music">음악</h2>
+    <p class="lede" data-i="music_lede"></p>
+    <ol class="disc" id="disc"></ol>
+  </section>
+
+  <section id="clips">
+    <h2 data-i="clips_title">틱톡 노래 영상</h2>
+    <p class="lede" data-i="clips_lede"></p>
+    <form class="clipf" id="clipform" hidden>
+      <label><span data-i="l_url">틱톡 영상 링크</span><input id="curl" type="url" inputmode="url" placeholder="https://www.tiktok.com/@…/video/…" required></label>
+      <div class="row">
+        <label><span data-i="l_song">노래 제목</span><input id="csong" maxlength="60" required></label>
+        <label><span data-i="l_date">날짜</span><input id="cdate" type="date"></label>
+      </div>
+      <label><span data-i="l_cap">한 줄 소개</span><input id="ccap" maxlength="120"></label>
+      <p class="hint" data-i="clip_hint2"></p>
+      <div class="actions"><button class="go" id="cadd" type="submit" data-i="b_add">영상 추가</button><span class="status" id="cstatus" aria-live="polite"></span></div>
+    </form>
+    <div class="clips" id="cliplist"></div>
+  </section>
+
+  <section id="cheers">
+    <h2 data-i="cheers_title">응원 메시지</h2>
+    <p class="lede" data-i="cheers_lede"></p>
+    <form class="cheer" id="form" hidden>
+      <div class="row">
+        <label><span data-i="l_nick">닉네임</span><input id="nick" maxlength="24" required autocomplete="nickname"></label>
+        <label><span data-i="l_from">어디에서</span>
+          <select id="from">
+            <option value="KR">🇰🇷 Korea</option><option value="TH">🇹🇭 Thailand</option>
+            <option value="SG">🇸🇬 Singapore</option><option value="PH">🇵🇭 Philippines</option>
+            <option value="US">🇺🇸 USA</option><option value="JP">🇯🇵 Japan</option>
+            <option value="ID">🇮🇩 Indonesia</option><option value="MY">🇲🇾 Malaysia</option>
+            <option value="VN">🇻🇳 Vietnam</option><option value="XX">🌏 Other</option>
+          </select></label>
+      </div>
+      <label><span data-i="l_msg">메시지</span><textarea id="msg" maxlength="400" required></textarea></label>
+      <div class="actions"><button class="go" id="send" type="submit" data-i="b_post">남기기</button><span class="status" id="status" aria-live="polite"></span></div>
+    </form>
+    <div class="notes" id="notes"><div class="empty" data-i="loading">불러오는 중…</div></div>
+  </section>
+
+  <section id="links">
+    <h2 data-i="nav_links">링크</h2>
+    <div class="links">
+      <a href="https://www.youtube.com/@whyunmo" target="_blank" rel="noopener">YouTube<small>@whyunmo</small></a>
+      <a href="https://www.tiktok.com/@hyunmomo" target="_blank" rel="noopener">TikTok<small>@hyunmomo</small></a>
+      <a href="https://www.instagram.com/whyunmo" target="_blank" rel="noopener">Instagram<small>@whyunmo</small></a>
+      <a href="https://music.bugs.co.kr/artist/20119089" target="_blank" rel="noopener">Bugs<small>현모(Hyunmo)</small></a>
+      <a href="https://music.apple.com/us/artist/%ED%98%84%EB%AA%A8/1612416154" target="_blank" rel="noopener">Apple Music<small>현모</small></a>
+    </div>
+  </section>
+
+  <footer>
+    <p data-i="foot"></p>
+    <p data-i="src"></p>
+    <p><button type="button" class="adminlink" id="adminbtn" data-i="admin_in">관리자 로그인</button> <span id="adminmsg"></span></p>
+  </footer>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+rules_version = '2';
+// Firebase 콘솔 → Firestore Database → 규칙(Rules) 탭에 이 내용을 통째로 붙여넣고 "게시"를 누르세요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 관리자 = admins 컬렉션에 "구글 이메일" 이름으로 문서가 있는 사람
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    // 관리자 명단: 본인 것만 확인 가능, 추가·삭제는 Firebase 콘솔에서만
+    match /admins/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false;
+    }
+
+    // 응원 메시지: 누구나 읽기, 방문자는 자기 메시지 하나만 쓰고 고치기
+    match /guestbook/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nick', 'msg', 'from', 'at'])
+        && request.resource.data.nick is string && request.resource.data.nick.size() > 0 && request.resource.data.nick.size() <= 24
+        && request.resource.data.msg is string && request.resource.data.msg.size() > 0 && request.resource.data.msg.size() <= 400
+        && request.resource.data.from is string && request.resource.data.from.size() <= 2
+        && request.resource.data.at == request.time;
+      allow delete: if request.auth != null && (request.auth.uid == uid || isAdmin());
+    }
+
+    // 틱톡 영상: 누구나 보기, 관리자만 추가·삭제
+    match /clips/{clipId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 라이브 상태: 누구나 보기, 관리자만 켜고 끄기
+    match /status/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
