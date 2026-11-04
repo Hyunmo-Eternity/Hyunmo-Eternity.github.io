@@ -151,3 +151,84 @@ body{font-size:16px}
 ol.disc .pl{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--leaf);border-radius:999px;padding:1px 9px;margin-left:8px;cursor:pointer;vertical-align:3px}
 .clip .embed{aspect-ratio:9/16;max-width:100%;width:100%;border:0;display:block;background:var(--bg)}
 .adminlink{font:inherit;font-size:13px;background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer}
+
+/* --- 화사한 파스텔 테마 --- */
+:root{
+  --bg:#FFF6F8; --paper:#FFFFFF; --ink:#2B2A33; --muted:#7A7385; --line:#F1DCE3;
+  --leaf:#3F8A68; --petal:#E0708F; --petal-soft:#FDE3EA;
+  --t-mint:#E6F6EE; --t-peach:#FFEDE3; --t-lav:#EFEAFB; --t-pink:#FDE8EE; --t-sky:#E5F1FC;
+  --sky1:#FFE9F0; --sky2:#F1FAF5; --sky3:#ECF3FF;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1B1720; --paper:#24202B; --ink:#F2EDF4; --muted:#B4AABD; --line:#3A3242;
+  --leaf:#8FD3B0; --petal:#F29BB4; --petal-soft:#46303A;
+  --t-mint:#1F2B26; --t-peach:#2E2420; --t-lav:#272336; --t-pink:#2E2229; --t-sky:#1F2732;
+  --sky1:#241B24; --sky2:#1B221F; --sky3:#1C2130; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1B1720; --paper:#24202B; --ink:#F2EDF4; --muted:#B4AABD; --line:#3A3242;
+  --leaf:#8FD3B0; --petal:#F29BB4; --petal-soft:#46303A;
+  --t-mint:#1F2B26; --t-peach:#2E2420; --t-lav:#272336; --t-pink:#2E2229; --t-sky:#1F2732;
+  --sky1:#241B24; --sky2:#1B221F; --sky3:#1C2130; color-scheme:dark}
+
+body{background:linear-gradient(165deg,var(--sky1) 0%,var(--sky2) 45%,var(--sky3) 100%) fixed,var(--bg)}
+body::before{background:var(--sky1)}
+.wrap{position:relative;z-index:1}
+.bar{background:color-mix(in srgb,var(--sky1) 88%,transparent);backdrop-filter:blur(8px);border-bottom-color:transparent}
+
+/* 섹션마다 다른 파스텔 카드 */
+section{border-top:0;border-radius:28px;padding:24px max(18px,4%);margin-top:18px}
+#profile{background:var(--t-mint)}
+#music{background:var(--t-peach)}
+#clips{background:var(--t-lav)}
+#cheers{background:var(--t-pink)}
+#links{background:var(--t-sky)}
+footer{border-top:0;margin-top:24px}
+h2{display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--petal);box-shadow:16px 0 0 -2px var(--leaf);margin-right:14px;flex:none}
+.count{background:var(--paper);border-color:transparent;box-shadow:0 6px 20px color-mix(in srgb,var(--petal) 18%,transparent)}
+.note,.links a,form.cheer,form.clipf,.clip{border-color:transparent;box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent)}
+.links a:hover{transform:translateY(-2px);transition:transform .2s}
+.ring{filter:drop-shadow(0 8px 24px color-mix(in srgb,var(--petal) 30%,transparent))}
+ol.disc li{border-bottom-color:color-mix(in srgb,var(--petal) 30%,transparent)}
+
+/* 꽃잎 캔버스 (내용 뒤에) */
+canvas.petals{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+
+/* 응원 메시지 전광판 */
+.ticker{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--paper);border-radius:999px;padding:6px 6px 6px 14px;
+  box-shadow:0 4px 14px color-mix(in srgb,var(--petal) 16%,transparent);overflow:hidden}
+.ticker .tk-label{flex:none;font-size:12px;font-weight:700;color:var(--petal);white-space:nowrap}
+.ticker .tk-view{flex:1;min-width:0;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.ticker .tk-track{display:inline-flex;gap:28px;white-space:nowrap;font-size:14px;padding-block:2px}
+.ticker .tk-item b{color:var(--leaf);margin-right:4px}
+@media (prefers-reduced-motion:no-preference){
+  .ticker .tk-track{animation:tk var(--dur,40s) linear infinite}
+  .ticker:hover .tk-track{animation-play-state:paused}
+  @keyframes tk{to{transform:translateX(-50%)}}
+}
+@media (prefers-reduced-motion:reduce){.ticker .tk-view{overflow-x:auto}}
+@media (max-width:440px){.ticker .tk-label{display:none}}
+
+/* 기념일 축하 배너 */
+.celebrate{font-family:var(--f-display);font-weight:700;font-size:clamp(17px,4.4vw,21px);text-align:center;cursor:pointer;
+  background:linear-gradient(90deg,var(--petal-soft),var(--t-lav),var(--t-mint),var(--petal-soft));background-size:300% 100%;
+  color:var(--petal);border-radius:999px;padding:10px 22px;margin-bottom:10px;text-wrap:balance}
+@media (prefers-reduced-motion:no-preference){.celebrate{animation:shimmer 6s linear infinite}}
+
+/* --- 노래 영상: 틱톡·유튜브·인스타그램 --- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.chip{font:inherit;font-size:13px;border:0;border-radius:999px;padding:6px 14px;cursor:pointer;background:var(--paper);color:var(--muted);box-shadow:0 2px 8px color-mix(in srgb,var(--ink) 6%,transparent)}
+.chip[aria-pressed="true"]{background:var(--petal);color:#fff}
+.ptag{font-size:11px;font-weight:700;letter-spacing:.04em;border-radius:999px;padding:1px 8px;background:var(--petal-soft);color:var(--petal)}
+.ptag.youtube{background:#FDE2E2;color:#C62828}
+.ptag.instagram{background:#F6E3F7;color:#A23BA8}
+.ptag.tiktok{background:#E3F4F4;color:#1F7A7A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ptag.youtube{background:#3A2222;color:#FF9C9C}:root:not([data-theme="light"]) .ptag.instagram{background:#35243A;color:#E7A6EC}:root:not([data-theme="light"]) .ptag.tiktok{background:#1E3333;color:#8ED8D8}}
+:root[data-theme="dark"] .ptag.youtube{background:#3A2222;color:#FF9C9C}
+:root[data-theme="dark"] .ptag.instagram{background:#35243A;color:#E7A6EC}
+:root[data-theme="dark"] .ptag.tiktok{background:#1E3333;color:#8ED8D8}
+.clip .info .m .open{color:var(--muted);text-decoration:none;font-size:13px}
+.clip .embed.landscape{aspect-ratio:16/9}
+.clip .embed.insta{aspect-ratio:4/5.8;background:#fff}
+@media (min-width:560px){.clip.wide{grid-column:span 2}}
+.clips{align-items:start}

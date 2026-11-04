@@ -119,36 +119,81 @@ function renderNotes() {
   }
 }
 
-/* ---------- TikTok clips ---------- */
-const tkId = u => (/\/video\/(\d{8,25})/.exec(u) || [])[1];
-const tkUser = u => (/tiktok\.com\/(@[^/?#]+)/i.exec(u) || [])[1] || "TikTok";
+/* ---------- 노래 영상 (TikTok · YouTube · Instagram) ---------- */
+const PLAT = { tiktok: "TikTok", youtube: "YouTube", instagram: "Instagram" };
+function parseVideo(u) {
+  let x; try { x = new URL(u); } catch (e) { return null; }
+  if (x.protocol !== "https:") return null;
+  const h = x.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  if (/(^|\.)tiktok\.com$/.test(h)) {
+    const id = (/\/video\/(\d{8,25})/.exec(x.pathname) || [])[1];
+    const who = (/^\/(@[^/]+)/.exec(x.pathname) || [])[1];
+    return { p: "tiktok", who: who || "TikTok", tall: true, embed: id ? `https://www.tiktok.com/player/v1/${id}?music_info=1&description=0&rel=0` : null };
+  }
+  if (h === "youtu.be" || /(^|\.)youtube\.com$/.test(h)) {
+    const seg = x.pathname.split("/").filter(Boolean);
+    let id = null, tall = false;
+    if (h === "youtu.be") id = seg[0];
+    else if (seg[0] === "shorts") { id = seg[1]; tall = true; }
+    else if (seg[0] === "live" || seg[0] === "embed") id = seg[1];
+    else id = x.searchParams.get("v");
+    if (id && !/^[\w-]{6,20}$/.test(id)) id = null;
+    return { p: "youtube", who: "YouTube", tall, embed: id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null };
+  }
+  if (/(^|\.)instagram\.com$/.test(h)) {
+    const m = /\/(p|reel|reels|tv)\/([\w-]+)/.exec(x.pathname);
+    return { p: "instagram", who: "Instagram", tall: true, insta: true, embed: m ? `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed` : null };
+  }
+  return null;
+}
+let clipFilter = "all";
+const chips = document.createElement("div"); chips.className = "chips"; chips.setAttribute("role", "group");
+$("cliplist").before(chips);
+function renderChips() {
+  const t = T[lang], have = new Set((clips || []).map(c => (parseVideo(c.url) || {}).p).filter(Boolean));
+  chips.textContent = ""; chips.hidden = have.size < 2;
+  if (clipFilter !== "all" && !have.has(clipFilter)) clipFilter = "all";
+  for (const k of ["all", "tiktok", "youtube", "instagram"]) {
+    if (k !== "all" && !have.has(k)) continue;
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip " + k;
+    b.textContent = k === "all" ? t.all : PLAT[k]; b.setAttribute("aria-pressed", clipFilter === k);
+    b.onclick = () => { clipFilter = k; renderClips(); };
+    chips.appendChild(b);
+  }
+}
 function renderClips() {
   const box = $("cliplist"), t = T[lang]; box.textContent = "";
+  $("curl").placeholder = "https://www.youtube.com/watch?v=…  ·  tiktok.com/@…/video/…  ·  instagram.com/reel/…";
   const msg = k => { const e = document.createElement("div"); e.className = "empty"; e.style.gridColumn = "1/-1"; e.textContent = t[k]; box.appendChild(e); };
+  renderChips();
   if (!clips) return msg("loading");
   if (!clips.length) return msg("noclips");
   for (const c of clips) {
-    const card = document.createElement("article"); card.className = "clip";
-    const id = tkId(c.url);
-    if (id) {
+    const v = parseVideo(c.url) || { p: "tiktok", who: "", tall: true, embed: null };
+    if (clipFilter !== "all" && v.p !== clipFilter) continue;
+    const card = document.createElement("article"); card.className = `clip ${v.p}${v.tall ? "" : " wide"}`;
+    if (v.embed) {
       const f = document.createElement("iframe");
-      f.className = "embed"; f.loading = "lazy"; f.title = c.song;
-      f.src = `https://www.tiktok.com/player/v1/${id}?music_info=1&description=0&rel=0`;
-      f.allow = "fullscreen; encrypted-media; picture-in-picture";
+      f.className = "embed" + (v.tall ? "" : " landscape") + (v.insta ? " insta" : ""); f.loading = "lazy"; f.title = c.song;
+      f.src = v.embed;
+      f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay";
+      f.referrerPolicy = "strict-origin-when-cross-origin";
       card.appendChild(f);
     } else {
       const a = document.createElement("a"); a.className = "face"; a.href = c.url; a.target = "_blank"; a.rel = "noopener";
       a.setAttribute("aria-label", `${t.watch}: ${c.song}`);
-      const src = document.createElement("span"); src.className = "src"; src.textContent = "TikTok ↗";
+      const src = document.createElement("span"); src.className = "src"; src.textContent = `${PLAT[v.p]} ↗`;
       const pl = document.createElement("span"); pl.className = "play";
-      const who = document.createElement("span"); who.className = "who"; who.textContent = tkUser(c.url);
+      const who = document.createElement("span"); who.className = "who"; who.textContent = v.who;
       a.append(src, pl, who); card.appendChild(a);
     }
     const info = document.createElement("div"); info.className = "info";
     const ti = document.createElement("div"); ti.className = "t"; ti.textContent = c.song; info.appendChild(ti);
     if (c.cap) { const cp = document.createElement("div"); cp.className = "c"; cp.textContent = c.cap; info.appendChild(cp); }
     const m = document.createElement("div"); m.className = "m";
+    const tag = document.createElement("span"); tag.className = "ptag " + v.p; tag.textContent = PLAT[v.p]; m.appendChild(tag);
     const d = document.createElement("span"); d.textContent = c.date || ""; m.appendChild(d);
+    const go = document.createElement("a"); go.href = c.url; go.target = "_blank"; go.rel = "noopener"; go.className = "open"; go.textContent = "↗"; go.setAttribute("aria-label", t.watch); m.appendChild(go);
     if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "clips", c.id)).catch(() => {}); m.appendChild(x); }
     info.appendChild(m); card.appendChild(info); box.appendChild(card);
   }
@@ -345,8 +390,7 @@ if (!configured) {
   $("clipform").addEventListener("submit", async e => {
     e.preventDefault();
     const st = $("cstatus"), btn = $("cadd"), url = $("curl").value.trim();
-    let ok = false; try { const u = new URL(url); ok = /(^|\.)tiktok\.com$/i.test(u.hostname) && u.protocol === "https:"; } catch (err) {}
-    if (!ok) { st.textContent = T[lang].badurl; return; }
+    if (!parseVideo(url)) { st.textContent = T[lang].badurl; return; }
     const song = $("csong").value.trim().slice(0, 60), cap = $("ccap").value.trim().slice(0, 120), date = $("cdate").value || "";
     if (!song) return;
     btn.disabled = true; st.textContent = "";
