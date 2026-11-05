@@ -309,6 +309,121 @@ $("sgform").addEventListener("submit", async e => {
   btn.disabled = false;
 });
 
+/* ---------- 팬 사진 갤러리 ---------- */
+let fanPhotos = null, photosStarted = false, pendPhotos = [], unsubPendPhotos = null, lbItem = null;
+$("up_from").innerHTML = $("from").innerHTML;
+function startPhotos() {
+  if (photosStarted) return;
+  if (!db) { setTimeout(startPhotos, 400); return; }
+  photosStarted = true;
+  onSnapshot(query(collection(db, "photos"), orderBy("at", "desc"), limit(120)), snap => {
+    fanPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderPhotos();
+  }, () => { fanPhotos = []; renderPhotos(); });
+}
+function renderPhotos() {
+  const t = T[lang], g = $("gallery"); g.textContent = "";
+  if (mine && !$("up_nick").value) { $("up_nick").value = mine.nick || ""; $("up_from").value = mine.from || "XX"; }
+  if (!fanPhotos) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.loading; g.appendChild(e); }
+  else if (!fanPhotos.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.nophotos; g.appendChild(e); }
+  else for (const ph of fanPhotos) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "gitem";
+    const im = document.createElement("img"); im.src = ph.thumb; im.alt = ph.cap || ""; im.loading = "lazy";
+    const by = document.createElement("span"); by.className = "gby"; by.textContent = `${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+    b.append(im, by); b.onclick = () => openPhoto(ph); g.appendChild(b);
+  }
+  // 관리자: 승인 대기
+  const pb = $("pendphotos"); pb.textContent = ""; pb.hidden = !isAdmin || !pendPhotos.length;
+  if (pb.hidden) return;
+  const h = document.createElement("h3"); h.textContent = `${t.up_pending} (${pendPhotos.length})`; pb.appendChild(h);
+  for (const ph of pendPhotos) {
+    const row = document.createElement("div"); row.className = "prow";
+    const im = document.createElement("img"); im.src = ph.thumb; im.className = "pthumb"; im.alt = "";
+    im.onclick = () => openPhoto(ph, true);
+    const info = document.createElement("div"); info.className = "pinfo";
+    const c = document.createElement("span"); c.textContent = ph.cap || "—";
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+    info.append(c, by);
+    const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
+    const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
+    ok.onclick = async () => {
+      ok.disabled = no.disabled = true;
+      try {
+        const ref = await addDoc(collection(db, "photos"), { thumb: ph.thumb, cap: ph.cap || "", nick: ph.nick, from: ph.from, at: serverTimestamp() });
+        await setDoc(doc(db, "photo_full", ref.id), { img: ph.img });
+        await deleteDoc(doc(db, "photo_pending", ph.id));
+      } catch (e) { ok.disabled = no.disabled = false; }
+    };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "photo_pending", ph.id)).catch(() => { no.disabled = false; }); };
+    row.append(im, info, ok, no); pb.appendChild(row);
+  }
+}
+function watchPhotoPending() {
+  if (unsubPendPhotos) { unsubPendPhotos(); unsubPendPhotos = null; }
+  pendPhotos = [];
+  if (!isAdmin) return renderPhotos();
+  unsubPendPhotos = onSnapshot(query(collection(db, "photo_pending"), orderBy("at", "asc"), limit(50)), snap => {
+    pendPhotos = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderPhotos();
+  }, () => {});
+}
+async function openPhoto(ph, pendingItem) {
+  const t = T[lang], lb = $("lightbox"); lbItem = pendingItem ? null : ph;
+  $("lbimg").src = ph.img || ph.thumb; $("lbimg").alt = ph.cap || "";
+  $("lbcap").textContent = ph.cap || ""; $("lbby").textContent = `${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+  const del = $("lbdel"); del.hidden = !isAdmin || pendingItem; del.textContent = t.del_photo;
+  try { lb.showModal(); } catch (e) { lb.setAttribute("open", ""); }
+  if (!ph.img && !pendingItem) {
+    try { const f = await getDoc(doc(db, "photo_full", ph.id)); if (f.exists() && lbItem === ph) $("lbimg").src = f.data().img; } catch (e) {}
+  }
+}
+$("lbclose").onclick = () => $("lightbox").close();
+$("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $("lightbox").close(); });
+$("lbdel").onclick = async () => {
+  if (!lbItem) return;
+  const id = lbItem.id; $("lightbox").close();
+  try { await deleteDoc(doc(db, "photos", id)); await deleteDoc(doc(db, "photo_full", id)); } catch (e) {}
+};
+// 사진 줄이기: 원본은 서버에 보내지 않고, 휴대폰/PC 안에서 작게 만든 뒤 보내요
+function loadImage(file) {
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { ok(im); URL.revokeObjectURL(url); }; im.onerror = () => { fail(); URL.revokeObjectURL(url); };
+    im.src = url;
+  });
+}
+function shrink(im, max, square, budget) {
+  let w = im.naturalWidth, h = im.naturalHeight, sx = 0, sy = 0, sw = w, sh = h;
+  if (square) { const m = Math.min(w, h); sx = (w - m) / 2; sy = (h - m) / 2; sw = sh = m; w = h = Math.min(m, max); }
+  else { const r = Math.min(1, max / Math.max(w, h)); w = Math.round(w * r); h = Math.round(h * r); }
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, w, h); x.drawImage(im, sx, sy, sw, sh, 0, 0, w, h);
+  for (let q = 0.85; q >= 0.4; q -= 0.08) { const d = c.toDataURL("image/jpeg", q); if (d.length <= budget) return d; }
+  return c.toDataURL("image/jpeg", 0.35);
+}
+let upData = null;
+$("up_file").addEventListener("change", async () => {
+  const st = $("up_status"), f = $("up_file").files[0]; upData = null; $("up_preview").hidden = true;
+  if (!f) return;
+  st.textContent = T[lang].up_busy;
+  try {
+    const im = await loadImage(f);
+    upData = { img: shrink(im, 1200, false, 420000), thumb: shrink(im, 360, true, 60000) };
+    $("up_img").src = upData.thumb; $("up_preview").hidden = false; st.textContent = "";
+  } catch (e) { st.textContent = T[lang].up_bad; $("up_file").value = ""; }
+});
+$("upform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("up_status"), btn = $("up_send");
+  const nick = $("up_nick").value.trim().slice(0, 24), cap = $("up_cap").value.trim().slice(0, 80), from = $("up_from").value;
+  if (!upData) { st.textContent = t.up_bad; return; }
+  if (!nick || !user || !db) return;
+  btn.disabled = true; st.textContent = "";
+  try {
+    await addDoc(collection(db, "photo_pending"), { img: upData.img, thumb: upData.thumb, cap, nick, from, by: user.uid, at: serverTimestamp() });
+    st.textContent = t.up_thanks; $("up_file").value = ""; $("up_cap").value = ""; $("up_preview").hidden = true; upData = null;
+  } catch (err) { st.textContent = t.fail; }
+  btn.disabled = false;
+});
+
 /* ---------- live ---------- */
 const isLive = () => !!(live && live.on && live.url && Date.now() - (live.since || 0) < LIVE_MAX);
 function renderLive() {
@@ -335,7 +450,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -444,7 +559,7 @@ function renderCelebrate() {
 celebrate.addEventListener("click", confetti);
 
 /* ---------- 메뉴별 페이지 나누기 ---------- */
-const PAGES = ["profile", "music", "clips", "cheers", "links"];
+const PAGES = ["profile", "music", "clips", "photos", "cheers", "links"];
 const hero = document.querySelector(".hero");
 const mini = document.createElement("div"); mini.className = "minititle";
 mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
@@ -458,6 +573,7 @@ function route() {
   document.querySelectorAll(".bar nav a").forEach(a => {
     if (a.getAttribute("href") === "#" + page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
+  if (page === "photos") setTimeout(startPhotos, 0);
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
   window.scrollTo(0, 0);
@@ -468,42 +584,63 @@ if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 route();
 addEventListener("load", () => window.scrollTo(0, 0));
 
-/* ---------- 첫 화면 사진 슬라이드 + 배경 함께 바뀌기 ---------- */
+/* ---------- 첫 화면 사진: 여러 장이 겹쳐 놓인 사진 더미 + 배경 함께 바뀌기 ---------- */
 const ringEl = document.querySelector(".ring");
 const bgLayer = document.createElement("div"); bgLayer.className = "photobg"; bgLayer.setAttribute("aria-hidden", "true");
 document.body.prepend(bgLayer);
 let slide = 0, slideTimer = null;
-const slideImgs = [], bgImgs = [];
+const cards = [], bgImgs = [];
+const LOOKS = [ // 앞에서부터 뒤로: 기울기, 위치
+  { r: -2, x: 0, y: 0 }, { r: 6, x: 34, y: 14 }, { r: -7, x: -34, y: 18 }, { r: 3, x: 10, y: 26 }
+];
 if (PHOTOS.length) {
+  const list = PHOTOS.map(p => typeof p === "string" ? { file: p } : p);
   ringEl.classList.add("has-photo");
-  const holder = document.createElement("div"); holder.className = "slides";
-  ringEl.prepend(holder);
+  const stage = document.createElement("div"); stage.className = "stack";
+  ringEl.before(stage);
+  const tag = document.createElement("div"); tag.className = "nametag";
+  tag.innerHTML = '<span class="name">현모</span><span class="rom">HYUNMO</span>';
+  stage.appendChild(tag);
   const dots = document.createElement("div"); dots.className = "dots";
-  ringEl.after(dots);
-  PHOTOS.forEach((src, i) => {
-    const im = document.createElement("img"); im.src = src; im.alt = i ? "" : "현모 Hyunmo"; im.decoding = "async";
-    if (i) im.loading = "lazy";
-    holder.appendChild(im); slideImgs.push(im);
-    const bg = document.createElement("div"); bg.className = "bgimg"; bg.style.backgroundImage = `url("${src}")`;
+  stage.after(dots);
+  list.forEach((p, i) => {
+    const card = document.createElement("figure"); card.className = "pcard";
+    const im = document.createElement("img"); im.src = p.file; im.alt = i ? "" : "현모 Hyunmo"; im.decoding = "async";
+    if (p.focus) im.style.objectPosition = p.focus;
+    im.addEventListener("load", () => card.style.setProperty("--ar", (im.naturalWidth / im.naturalHeight).toFixed(3)));
+    card.appendChild(im); stage.insertBefore(card, tag); cards.push(card);
+    const bg = document.createElement("div"); bg.className = "bgimg"; bg.style.backgroundImage = `url("${p.file}")`;
     bgLayer.appendChild(bg); bgImgs.push(bg);
-    if (PHOTOS.length > 1) {
-      const d = document.createElement("button"); d.type = "button"; d.setAttribute("aria-label", `${i + 1} / ${PHOTOS.length}`);
+    if (list.length > 1) {
+      const d = document.createElement("button"); d.type = "button"; d.setAttribute("aria-label", `${i + 1} / ${list.length}`);
       d.onclick = () => { showSlide(i); restartSlides(); };
       dots.appendChild(d);
     }
   });
   function showSlide(i) {
-    slide = (i + PHOTOS.length) % PHOTOS.length;
-    slideImgs.forEach((im, k) => im.classList.toggle("on", k === slide));
+    const n = cards.length; slide = (i + n) % n;
+    cards.forEach((c, k) => {
+      const depth = (k - slide + n) % n, L = LOOKS[Math.min(depth, LOOKS.length - 1)];
+      c.style.setProperty("--r", L.r + "deg"); c.style.setProperty("--x", L.x + "px"); c.style.setProperty("--y", L.y + "px");
+      c.style.zIndex = String(n - depth);
+      c.classList.toggle("front", depth === 0);
+      c.classList.toggle("hide", depth >= LOOKS.length);
+    });
     bgImgs.forEach((b, k) => b.classList.toggle("on", k === slide));
     [...dots.children].forEach((d, k) => d.setAttribute("aria-current", k === slide ? "true" : "false"));
-    const next = slideImgs[(slide + 1) % PHOTOS.length]; if (next) next.loading = "eager";
   }
   function restartSlides() {
     clearInterval(slideTimer);
-    if (PHOTOS.length > 1) slideTimer = setInterval(() => { if (!document.hidden) showSlide(slide + 1); }, Math.max(2, PHOTO_SECONDS) * 1000);
+    if (cards.length > 1) slideTimer = setInterval(() => { if (!document.hidden) showSlide(slide + 1); }, Math.max(2, PHOTO_SECONDS) * 1000);
   }
-  ringEl.addEventListener("click", () => { showSlide(slide + 1); restartSlides(); });
+  stage.addEventListener("click", () => { showSlide(slide + 1); restartSlides(); });
+  // 휴대폰에서 옆으로 밀어 넘기기
+  let sx = null;
+  stage.addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, { passive: true });
+  stage.addEventListener("touchend", e => {
+    if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 40) { showSlide(slide + (dx < 0 ? 1 : -1)); restartSlides(); }
+  });
   showSlide(0); restartSlides();
 }
 
@@ -539,7 +676,7 @@ if (!configured) {
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     $("form").hidden = false;
-    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending();
+    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending();
   });
 
   $("adminbtn").addEventListener("click", async () => {

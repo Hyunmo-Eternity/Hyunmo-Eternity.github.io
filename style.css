@@ -267,25 +267,34 @@ section{scroll-margin-top:80px}
   @keyframes pagein{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
 
-/* --- 첫 화면 사진 슬라이드 --- */
-.ring.has-photo{width:min(320px,80vw);cursor:pointer}
-.ring .slides{position:absolute;inset:13%;border-radius:50%;overflow:hidden;background:var(--petal-soft);
-  box-shadow:0 10px 30px color-mix(in srgb,var(--petal) 35%,transparent),inset 0 0 0 4px var(--paper)}
-.ring .slides img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
-.ring .slides img.on{opacity:1}
-.ring.has-photo > svg{z-index:1}
-.ring.has-photo > div:not(.slides){position:absolute;left:0;right:0;bottom:-6px;z-index:2;text-align:center;pointer-events:none}
-.ring.has-photo .name{display:inline-block;font-size:26px;background:var(--paper);padding:4px 18px;border-radius:999px;
-  box-shadow:0 4px 14px color-mix(in srgb,var(--petal) 25%,transparent)}
-.ring.has-photo .rom{display:none}
-.dots{display:flex;gap:8px;justify-content:center;margin-top:14px}
+/* --- 첫 화면 사진 더미 --- */
+.ring.has-photo{display:none}
+.stack{position:relative;width:min(340px,74vw);height:min(420px,92vw);margin:10px auto 6px;cursor:pointer;touch-action:pan-y}
+.pcard{position:absolute;left:50%;top:50%;margin:0;--ar:.8;
+  height:86%;width:auto;aspect-ratio:var(--ar);max-width:100%;
+  transform:translate(-50%,-50%) translate(var(--x,0),var(--y,0)) rotate(var(--r,0deg));
+  background:var(--paper);padding:8px;border-radius:18px;
+  box-shadow:0 14px 34px color-mix(in srgb,var(--ink) 18%,transparent);
+  transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .6s,filter .6s}
+.pcard img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.pcard:not(.front){filter:saturate(.85) brightness(.97)}
+.pcard.hide{opacity:0}
+.pcard.front{box-shadow:0 20px 44px color-mix(in srgb,var(--petal) 35%,transparent)}
+.nametag{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);z-index:50;pointer-events:none;white-space:nowrap;
+  background:var(--paper);padding:6px 20px;border-radius:999px;display:flex;align-items:baseline;gap:10px;
+  box-shadow:0 6px 18px color-mix(in srgb,var(--petal) 30%,transparent)}
+.nametag .name{font-family:var(--f-display);font-weight:700;font-size:26px}
+.nametag .rom{font-size:11px;letter-spacing:.3em;color:var(--muted)}
+.nametag::before,.nametag::after{content:"✿";color:var(--petal);font-size:14px}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:18px}
 .dots button{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:color-mix(in srgb,var(--petal) 30%,transparent);cursor:pointer;transition:width .3s}
 .dots button[aria-current="true"]{width:22px;border-radius:999px;background:var(--petal)}
-.hero.compact .dots{display:none}
+.hero.compact .stack,.hero.compact .dots{display:none}
 @media (prefers-reduced-motion:no-preference){
-  .ring .slides img.on{animation:kb 7s ease-out both}
-  @keyframes kb{from{transform:scale(1.08)}to{transform:scale(1)}}
+  .pcard.front img{animation:kb 6s ease-out both}
+  @keyframes kb{from{transform:scale(1.06)}to{transform:scale(1)}}
 }
+@media (prefers-reduced-motion:reduce){.pcard{transition:none}}
 /* 배경: 지금 사진을 크게 흐리게 깔고 파스텔을 덮어요 */
 .photobg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .photobg .bgimg{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(40px) saturate(1.2);
@@ -294,3 +303,26 @@ section{scroll-margin-top:80px}
 .photobg::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,color-mix(in srgb,var(--sky1) 55%,transparent),color-mix(in srgb,var(--sky2) 45%,transparent),color-mix(in srgb,var(--sky3) 55%,transparent))}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .photobg .bgimg.on{opacity:.35}}
 :root[data-theme="dark"] .photobg .bgimg.on{opacity:.35}
+
+/* --- 팬 사진 --- */
+#photos{background:var(--t-mint)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:16px}
+.gallery .empty{grid-column:1/-1}
+.gitem{position:relative;border:0;padding:0;border-radius:14px;overflow:hidden;cursor:pointer;background:var(--paper);aspect-ratio:1;max-width:100%;
+  box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 8%,transparent)}
+.gitem img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.gitem:hover img{transform:scale(1.05)}
+.gitem .gby{position:absolute;left:6px;bottom:6px;right:6px;font-size:11px;color:#fff;text-align:left;text-shadow:0 1px 3px rgba(0,0,0,.6);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick input{padding:6px}
+.uppreview img{width:120px;height:120px;object-fit:cover;border-radius:12px;display:block}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.pthumb{width:56px;height:56px;object-fit:cover;border-radius:10px;cursor:zoom-in;flex:none}
+dialog.lightbox{border:0;padding:0;background:transparent;max-width:min(92vw,900px);max-height:92vh;overflow:visible}
+dialog.lightbox::backdrop{background:rgba(20,16,24,.82)}
+dialog.lightbox img{display:block;max-width:min(92vw,900px);max-height:78vh;border-radius:16px;margin:0 auto}
+.lbinfo{color:#fff;text-align:center;padding:10px 4px;display:grid;gap:4px;justify-items:center}
+.lbinfo p{margin:0}
+.lbinfo small{opacity:.8}
+.lbclose{position:absolute;top:-14px;right:-10px;width:36px;height:36px;border-radius:50%;border:0;background:var(--paper);color:var(--ink);font-size:16px;cursor:pointer;z-index:1}
+.lbdel{font:inherit;font-size:12px;background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:999px;padding:3px 12px;cursor:pointer;margin-top:4px}
