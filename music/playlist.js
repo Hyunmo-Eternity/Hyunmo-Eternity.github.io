@@ -5,7 +5,7 @@ export const PLAYLIST = [
   { title: "어떤가요", file: "song-08.mp3" },
   { title: "Nothing's Gonna Change My Love for You", file: "nothings-gonna-change.mp3" },
   { title: "페스티벌", file: "festival.mp3" },
-  { title: "현모의 노래", file: "song-07.mp3" },
+  { title: "이브의 경고", file: "song-07.mp3" },
   { title: "You Are My Everything", file: "you-are-my-everything.mp3" },
 ];
 
