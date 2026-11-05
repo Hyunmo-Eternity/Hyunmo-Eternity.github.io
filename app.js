@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
 import * as PL from "./music/playlist.js";
@@ -149,7 +149,7 @@ function renderNotes() {
     who.append(b, s);
     if (isAdmin || (user && n.id === user.uid)) {
       const x = document.createElement("button"); x.className = "del"; x.type = "button"; x.textContent = t.del;
-      x.onclick = () => deleteDoc(doc(db, "guestbook", n.id)).catch(() => {});
+      x.onclick = () => deleteDoc(doc(db, "guestbook", n.id)).then(() => { if (n.id !== user.uid) logAct("a_del_cheer", n.msg, { target: n.id, targetNick: n.nick }); else logAct("cheer_del", n.msg); }).catch(() => {});
       who.appendChild(x);
     }
     const p = document.createElement("p"); p.textContent = n.msg;
@@ -234,7 +234,7 @@ function renderClips() {
     const d = document.createElement("span"); d.textContent = c.date || ""; m.appendChild(d);
     if (c.byNick) { const by = document.createElement("span"); by.className = "by"; by.textContent = `${t.sg_by} ${FLAG[c.byFrom] || "🌏"} ${c.byNick}`; m.appendChild(by); }
     const go = document.createElement("a"); go.href = c.url; go.target = "_blank"; go.rel = "noopener"; go.className = "open"; go.textContent = "↗"; go.setAttribute("aria-label", t.watch); m.appendChild(go);
-    if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "clips", c.id)).catch(() => {}); m.appendChild(x); }
+    if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "clips", c.id)).then(() => logAct("a_del_video", c.song)).catch(() => {}); m.appendChild(x); }
     info.appendChild(m); card.appendChild(info); box.appendChild(card);
   }
 }
@@ -317,9 +317,10 @@ function renderSuggest() {
       try {
         await addDoc(collection(db, "clips"), { url: g.url, song: g.song, cap: "", date: new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10), at: serverTimestamp(), byNick: g.nick, byFrom: g.from });
         await deleteDoc(doc(db, "suggestions", g.id));
+        logAct("a_ok_video", g.song, { target: g.by, targetNick: g.nick });
       } catch (e) { ok.disabled = no.disabled = false; }
     };
-    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "suggestions", g.id)).catch(() => { no.disabled = false; }); };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "suggestions", g.id)).then(() => logAct("a_no_video", g.song, { target: g.by, targetNick: g.nick })).catch(() => { no.disabled = false; }); };
     row.append(info, ok, no); pendBox.appendChild(row);
   }
 }
@@ -341,6 +342,7 @@ $("sgform").addEventListener("submit", async e => {
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "suggestions"), { url, song, nick, from, by: user.uid, at: serverTimestamp() });
+    logAct("video", `${song} · ${url}`, { nick, from });
     st.textContent = t.sg_thanks; $("sg_url").value = ""; $("sg_song").value = "";
   } catch (err) { st.textContent = t.fail; }
   btn.disabled = false;
@@ -388,9 +390,10 @@ function renderPhotos() {
         const ref = await addDoc(collection(db, "photos"), { thumb: ph.thumb, cap: ph.cap || "", nick: ph.nick, from: ph.from, at: serverTimestamp() });
         await setDoc(doc(db, "photo_full", ref.id), { img: ph.img });
         await deleteDoc(doc(db, "photo_pending", ph.id));
+        logAct("a_ok_photo", ph.cap || "", { target: ph.by, targetNick: ph.nick });
       } catch (e) { ok.disabled = no.disabled = false; }
     };
-    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "photo_pending", ph.id)).catch(() => { no.disabled = false; }); };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "photo_pending", ph.id)).then(() => logAct("a_no_photo", ph.cap || "", { target: ph.by, targetNick: ph.nick })).catch(() => { no.disabled = false; }); };
     row.append(im, info, ok, no); pb.appendChild(row);
   }
 }
@@ -417,7 +420,8 @@ $("lightbox").addEventListener("click", e => { if (e.target === $("lightbox")) $
 $("lbdel").onclick = async () => {
   if (!lbItem) return;
   const id = lbItem.id; $("lightbox").close();
-  try { await deleteDoc(doc(db, "photos", id)); await deleteDoc(doc(db, "photo_full", id)); } catch (e) {}
+  const dn = lbItem.nick, dc = lbItem.cap;
+  try { await deleteDoc(doc(db, "photos", id)); await deleteDoc(doc(db, "photo_full", id)); logAct("a_del_photo", dc || "", { targetNick: dn }); } catch (e) {}
 };
 // 사진 줄이기: 원본은 서버에 보내지 않고, 휴대폰/PC 안에서 작게 만든 뒤 보내요
 function loadImage(file) {
@@ -471,6 +475,7 @@ $("upform").addEventListener("submit", async e => {
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "photo_pending"), { img: upData.img, thumb: upData.thumb, cap, nick, from, by: user.uid, at: serverTimestamp() });
+    logAct("photo", cap || "(설명 없음)", { nick, from });
     st.textContent = t.up_thanks; $("up_file").value = ""; $("up_cap").value = ""; $("up_preview").hidden = true; upData = null;
   } catch (err) { st.textContent = t.fail; }
   btn.disabled = false;
@@ -565,7 +570,7 @@ function renderEvents() {
     if (ev.place) { const pl = document.createElement("small"); pl.textContent = "📍 " + ev.place; body.appendChild(pl); }
     if (ev.byNick) { const bn = document.createElement("small"); bn.textContent = `${t.sg_by} ${FLAG[ev.byFrom] || "🌏"} ${ev.byNick}`; body.appendChild(bn); }
     li.append(ic, body);
-    if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "events", ev.id)).catch(() => {}); li.appendChild(x); }
+    if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "events", ev.id)).then(() => logAct("a_del_event", ev.title)).catch(() => {}); li.appendChild(x); }
     list.appendChild(li);
   };
   up.forEach(ev => add(ev, false));
@@ -599,6 +604,7 @@ $("evform").addEventListener("submit", async e => {
   if (link && !/^https:\/\//.test(link)) { st.textContent = t.badurl; return; }
   try {
     await addDoc(collection(db, "events"), { when, kind: $("ev_kind").value, title: $("ev_title").value.trim().slice(0, 80), place: $("ev_place").value.trim().slice(0, 80), link, at: serverTimestamp() });
+    logAct("a_add_event", $("ev_title").value.trim());
     st.textContent = t.ev_added; $("ev_title").value = ""; $("ev_place").value = ""; $("ev_link").value = "";
   } catch (err) { st.textContent = t.fail; }
 });
@@ -635,9 +641,10 @@ function renderEvSuggest() {
       try {
         await addDoc(collection(db, "events"), { when: g.when, kind: g.kind, title: g.title, place: g.place || "", link: g.link || "", byNick: g.nick, byFrom: g.from, at: serverTimestamp() });
         await deleteDoc(doc(db, "event_pending", g.id));
+        logAct("a_ok_event", g.title, { target: g.by, targetNick: g.nick });
       } catch (e) { ok.disabled = no.disabled = false; }
     };
-    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "event_pending", g.id)).catch(() => { no.disabled = false; }); };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "event_pending", g.id)).then(() => logAct("a_no_event", g.title, { target: g.by, targetNick: g.nick })).catch(() => { no.disabled = false; }); };
     row.append(info, ok, no); box.appendChild(row);
   }
 }
@@ -662,6 +669,7 @@ $("esform").addEventListener("submit", async e => {
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "event_pending"), { when, kind: $("es_kind").value, title, place: $("es_place").value.trim().slice(0, 80), link, nick, from: $("es_from").value, by: user.uid, at: serverTimestamp() });
+    logAct("event", title, { nick, from: $("es_from").value });
     st.textContent = t.es_thanks; $("es_title").value = ""; $("es_place").value = ""; $("es_link").value = ""; $("es_when").value = "";
   } catch (err) { st.textContent = t.fail; }
   btn.disabled = false;
@@ -710,7 +718,7 @@ function renderVotes() {
       voteBusy = true; const prev = myVote; myVote = song;
       if (voteCounts) { if (prev) voteCounts[prev] = Math.max(0, (voteCounts[prev] || 1) - 1); voteCounts[song] = (voteCounts[song] || 0) + 1; }
       renderVotes();
-      try { await setDoc(doc(db, "votes", user.uid), { song, at: serverTimestamp() }); } catch (e) { myVote = prev; }
+      try { await setDoc(doc(db, "votes", user.uid), { song, at: serverTimestamp() }); logAct("vote", song); } catch (e) { myVote = prev; }
       voteBusy = false; loadVotes(true);
     };
     li.appendChild(b); ol.appendChild(li);
@@ -759,6 +767,260 @@ function renderQuiz() {
   }
 }
 
+/* ---------- 이번 주 신청곡 (매주 월요일 0시 ~ 일요일 24시, 한국 시간) ---------- */
+function weekStart(offset = 0) {
+  const k = new Date(Date.now() + 9 * 3600e3), dow = (k.getUTCDay() + 6) % 7;
+  return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate() - dow + 7 * offset) - 9 * 3600e3; // 한국 시간 월요일 0시
+}
+const weekId = (offset = 0) => new Date(weekStart(offset) + 9 * 3600e3).toISOString().slice(0, 10);
+const keyOf = (t, a) => (String(t) + "|" + String(a)).toLowerCase().normalize("NFKC").replace(/[\s'’".,!?·\-()]/g, "");
+let rqNow = null, rqLast = null, rqResult = null, myRq = null, myRqVote = null, rqBusy = false, rqLoadedAt = 0, rqTick = null;
+async function rankWeek(w) {
+  const snap = await getDocs(query(collection(db, "song_req"), where("week", "==", w), limit(300)));
+  const reqs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const groups = new Map();
+  for (const r of reqs.sort((a, b) => (a.at?.seconds || 0) - (b.at?.seconds || 0))) {
+    const k = keyOf(r.title, r.artist);
+    if (!groups.has(k)) groups.set(k, { key: k, id: r.id, title: r.title, artist: r.artist, reqs: [], votes: 0 });
+    groups.get(k).reqs.push(r);
+  }
+  await Promise.all([...groups.values()].map(async g => {
+    const ns = await Promise.all(g.reqs.map(r => getCountFromServer(query(collection(db, "req_votes"), where("week", "==", w), where("req", "==", r.id))).then(x => x.data().count).catch(() => 0)));
+    g.votes = ns.reduce((a, b) => a + b, 0);
+  }));
+  const list = [...groups.values()].sort((a, b) => b.votes - a.votes || b.reqs.length - a.reqs.length);
+  const people = new Set(reqs.map(r => r.by));
+  return { list, people: people.size };
+}
+async function loadRequests(force) {
+  try { if (!db || !user) return; } catch (e) { return; }
+  if (!force && Date.now() - rqLoadedAt < 20000) { renderRequests(); return; }
+  rqLoadedAt = Date.now();
+  const W = weekId(0), LW = weekId(-1);
+  try {
+    const [now, last, res, mr, mv] = await Promise.all([
+      rankWeek(W), rankWeek(LW),
+      getDoc(doc(db, "req_results", LW)).catch(() => null),
+      getDoc(doc(db, "song_req", `${W}_${user.uid}`)).catch(() => null),
+      getDoc(doc(db, "req_votes", `${W}_${user.uid}`)).catch(() => null),
+    ]);
+    rqNow = now; rqLast = last; rqResult = res && res.exists() ? res.data() : null;
+    myRq = mr && mr.exists() ? mr.data() : null; myRqVote = mv && mv.exists() ? mv.data().req : null;
+  } catch (e) { rqNow = rqNow || { list: [], people: 0 }; }
+  renderRequests();
+}
+function rqMessage() {
+  const top = (rqResult?.top) || (rqLast?.list || []).slice(0, 3).map(g => ({ title: g.title, artist: g.artist, votes: g.votes }));
+  const a = new Date(weekStart(-1) + 9 * 3600e3), b = new Date(weekStart(0) + 9 * 3600e3 - 864e5);
+  const md = d => `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+  const medal = ["🥇", "🥈", "🥉"];
+  return [`현모님 안녕하세요! 🌸 팬사이트 신청곡 결과예요 (${md(a)}~${md(b)})`, "",
+    ...top.map((g, i) => `${medal[i]} ${g.title} - ${g.artist} (${g.votes}표)`), "",
+    `전 세계 팬 ${rqResult?.people ?? rqLast?.people ?? 0}명이 신청에 참여했어요. 언제나 응원해요! 💗`,
+    "https://hyunmo-eternity.github.io/#request"].join("\n");
+}
+function renderRequests() {
+  const t = T[lang];
+  $("rq_from").innerHTML = $("from").innerHTML;
+  if (mine && !$("rq_nick").value) { $("rq_nick").value = mine.nick || ""; $("rq_from").value = mine.from || "XX"; }
+  if (myRq && !$("rq_song").value && document.activeElement?.id !== "rq_song") { $("rq_song").value = myRq.title; $("rq_artist").value = myRq.artist; }
+  $("rq_send").textContent = myRq ? t.rq_update : t.rq_send;
+  // 마감까지
+  const left = weekStart(1) - Date.now(), d = Math.floor(left / 864e5), h = Math.floor(left % 864e5 / 36e5), m = Math.floor(left % 36e5 / 6e4);
+  $("rq_ends").textContent = left < 36e5 ? t.rq_closed : `${t.rq_ends} ${d ? d + t.d_days + " " : ""}${h}${t.d_hours} ${m}${t.d_min}`;
+  clearTimeout(rqTick); rqTick = setTimeout(() => { if (location.hash === "#request") { if (weekStart(1) <= Date.now()) loadRequests(true); else renderRequests(); } }, 60000);
+  // 이번 주 순위
+  const ol = $("rq_list"); ol.textContent = "";
+  if (!rqNow) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.loading; ol.appendChild(e); }
+  else if (!rqNow.list.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.rq_empty; ol.appendChild(e); }
+  else {
+    const total = rqNow.list.reduce((a, g) => a + g.votes, 0);
+    rqNow.list.slice(0, 20).forEach((g, i) => {
+      const mineHere = g.reqs.some(r => r.id === myRqVote);
+      const li = document.createElement("li");
+      const b = document.createElement("button"); b.type = "button"; b.className = "vbtn" + (mineHere ? " mine" : ""); b.disabled = rqBusy;
+      b.style.setProperty("--p", (total ? Math.round(g.votes / total * 100) : 0) + "%");
+      const rank = document.createElement("span"); rank.className = "vr"; rank.textContent = g.votes > 0 ? (["🥇", "🥈", "🥉"][i] || i + 1) : "♪";
+      const nm = document.createElement("span"); nm.className = "vn";
+      const tt = document.createElement("span"); tt.textContent = g.title;
+      const ar = document.createElement("small"); ar.className = "rqart"; ar.textContent = ` · ${g.artist}`;
+      const by = document.createElement("small"); by.className = "rqby";
+      const first = g.reqs[0]; by.textContent = `${t.rq_by}: ${FLAG[first.from] || "🌏"} ${first.nick}` + (g.reqs.length > 1 ? ` +${g.reqs.length - 1}` : "");
+      nm.append(tt, ar, by);
+      if (mineHere) { const mm = document.createElement("span"); mm.className = "vmine"; mm.textContent = t.rq_my; tt.appendChild(mm); }
+      const ct = document.createElement("span"); ct.className = "vc"; ct.textContent = mineHere ? `${g.votes} ${t.v_votes}` : `👍 ${g.votes}`;
+      b.append(rank, nm, ct);
+      b.onclick = () => rqVote(g.reqs[0].id, g.title);
+      li.appendChild(b); ol.appendChild(li);
+    });
+  }
+  // 지난주 결과
+  const lb = $("rq_last"); lb.textContent = "";
+  const top = rqResult?.top || (rqLast?.list || []).filter(g => g.votes > 0).slice(0, 3);
+  lb.hidden = !top.length;
+  if (top.length) {
+    const h = document.createElement("div"); h.className = "rqlh";
+    const hb = document.createElement("b"); hb.textContent = t.rq_last; h.appendChild(hb);
+    if (rqResult) { const sb = document.createElement("span"); sb.className = "rqsent"; sb.textContent = "✓ " + t.rq_sent; h.appendChild(sb); }
+    const ul = document.createElement("ol");
+    top.forEach((g, i) => { const li = document.createElement("li"); li.textContent = `${["🥇", "🥈", "🥉"][i]} ${g.title} · ${g.artist}`; ul.appendChild(li); });
+    lb.append(h, ul);
+  }
+  // 관리자: 지난주 결과 전달
+  const ab = $("rq_admin"); ab.textContent = ""; ab.hidden = !isAdmin || !(rqLast?.list || []).length;
+  if (!ab.hidden) {
+    const h = document.createElement("b"); h.textContent = rqResult ? "🛠 지난주 결과를 이미 전달 완료로 표시했어요" : "🛠 지난주 결과를 현모님께 보내기";
+    const pre = document.createElement("pre"); pre.className = "rqmsg"; pre.textContent = rqMessage();
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "go";
+    btn.textContent = rqResult ? "메시지 다시 복사" : "메시지 복사하고 전달 완료로 표시";
+    const st = document.createElement("span"); st.className = "status";
+    btn.onclick = async () => {
+      try { await navigator.clipboard.writeText(pre.textContent); st.textContent = "복사했어요. 카톡이나 문자에 붙여넣어 현모님께 보내주세요!"; }
+      catch (e) { const r = document.createRange(); r.selectNodeContents(pre); getSelection().removeAllRanges(); getSelection().addRange(r); st.textContent = "글이 선택됐어요. Ctrl+C로 복사해 주세요."; }
+      if (!rqResult) {
+        const topSave = rqLast.list.filter(g => g.votes > 0).slice(0, 3).map(g => ({ title: g.title, artist: g.artist, votes: g.votes }));
+        try { await setDoc(doc(db, "req_results", weekId(-1)), { top: topSave, people: rqLast.people, at: serverTimestamp() }); rqResult = { top: topSave, people: rqLast.people }; logAct("a_req_sent", topSave.map(g => g.title).join(", ")); renderRequests(); } catch (e) {}
+      }
+    };
+    const row = document.createElement("div"); row.className = "actions"; row.append(btn, st);
+    ab.append(h, pre, row);
+  }
+}
+async function rqVote(reqId, title) {
+  if (rqBusy || !user || myRqVote === reqId) return;
+  rqBusy = true; const prev = myRqVote; myRqVote = reqId; renderRequests();
+  try { await setDoc(doc(db, "req_votes", `${weekId(0)}_${user.uid}`), { week: weekId(0), req: reqId, at: serverTimestamp() }); logAct("req_vote", title); }
+  catch (e) { myRqVote = prev; }
+  rqBusy = false; loadRequests(true);
+}
+$("rq_form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("rq_status"), btn = $("rq_send");
+  const title = $("rq_song").value.trim().slice(0, 60), artist = $("rq_artist").value.trim().slice(0, 40), nick = $("rq_nick").value.trim().slice(0, 24), from = $("rq_from").value;
+  if (!title || !artist || !nick || !user) return;
+  if (checkText(title, artist, nick)) { st.textContent = t.blocked; return; }
+  btn.disabled = true; st.textContent = "";
+  const W = weekId(0), id = `${W}_${user.uid}`;
+  try {
+    await setDoc(doc(db, "song_req", id), { week: W, title, artist, nick, from, by: user.uid, at: serverTimestamp() });
+    // 같은 곡이 이미 있으면 그 곡에 투표, 아니면 내 신청곡에 투표
+    const same = (rqNow?.list || []).find(g => g.key === keyOf(title, artist));
+    const target = same ? same.reqs[0].id : id;
+    await setDoc(doc(db, "req_votes", id), { week: W, req: target, at: serverTimestamp() });
+    myRq = { title, artist }; myRqVote = target;
+    st.textContent = t.rq_thanks; logAct("req", `${title} - ${artist}`, { nick, from });
+    loadRequests(true);
+  } catch (err) { st.textContent = t.fail; }
+  btn.disabled = false;
+});
+
+/* ---------- 활동 기록 + 이용 제한 ---------- */
+const ACT = {
+  cheer: "💌 응원 작성", cheer_edit: "✏️ 응원 수정", cheer_del: "🗑 응원 삭제(본인)", video: "🎬 영상 추천", photo: "📷 사진 올림", event: "📢 일정 제보", vote: "🏆 투표",
+  a_del_cheer: "🛠 응원 삭제", a_ok_video: "🛠 영상 승인", a_no_video: "🛠 영상 거절", a_add_video: "🛠 영상 추가", a_del_video: "🛠 영상 삭제",
+  a_ok_photo: "🛠 사진 승인", a_no_photo: "🛠 사진 거절", a_del_photo: "🛠 사진 삭제", a_ok_event: "🛠 일정 승인", a_no_event: "🛠 일정 거절",
+  a_add_event: "🛠 일정 추가", a_del_event: "🛠 일정 삭제", a_live_on: "🛠 라이브 켬", a_live_off: "🛠 라이브 끔", a_ban: "🛠 이용 제한", a_unban: "🛠 제한 해제", req: "🎤 신청곡", req_vote: "🎶 신청곡 투표", a_req_sent: "🛠 신청곡 결과 전달",
+};
+// 활동을 기록해요. 기록이 실패해도 원래 동작에는 영향을 주지 않아요.
+function logAct(kind, detail, o = {}) {
+  if (!db || !user) return;
+  const me = mine || {};
+  const data = {
+    uid: user.uid, kind, detail: String(detail || "").slice(0, 120),
+    nick: String(o.nick || (isAdmin ? "관리자" : me.nick) || "").slice(0, 40),
+    from: String(o.from || me.from || "XX").slice(0, 2),
+    at: serverTimestamp(),
+  };
+  if (o.target) data.target = String(o.target).slice(0, 128);
+  if (o.targetNick) data.targetNick = String(o.targetNick).slice(0, 40);
+  addDoc(collection(db, "activity"), data).catch(() => {});
+}
+let acts = null, banned = [], unsubAct = null, unsubBan = null, actUser = null, actLimit = 300;
+function watchActivity() {
+  try { if (!db) return; } catch (e) { return; } // 아직 데이터베이스 준비 전
+  if (!isAdmin) { if (unsubAct) { unsubAct(); unsubBan(); unsubAct = unsubBan = null; } $("manage").hidden = true; return; }
+  if (unsubAct) return;
+  unsubAct = onSnapshot(query(collection(db, "activity"), orderBy("at", "desc"), limit(actLimit)), snap => {
+    acts = snap.docs.map(d => { const v = d.data({ serverTimestamps: "estimate" }); return { id: d.id, ...v, at: v.at?.toDate?.() || null }; });
+    renderManage();
+  }, () => { acts = []; renderManage(); });
+  unsubBan = onSnapshot(collection(db, "banned"), snap => { banned = snap.docs.map(d => ({ uid: d.id, ...d.data() })); renderManage(); }, () => {});
+}
+const shortId = u => u ? u.slice(0, 6) : "—";
+function renderManage() {
+  if (!isAdmin) return;
+  const ks = $("m_kind"); if (!ks.options.length) {
+    [["", "전체 활동"], ["fan", "팬 활동만"], ["admin", "관리자 처리만"], ...Object.entries(ACT)].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; ks.appendChild(o); });
+  }
+  const rows = $("m_rows"); rows.textContent = "";
+  if (!acts) { rows.innerHTML = '<tr><td colspan="5" class="mempty">불러오는 중…</td></tr>'; return; }
+  const k = ks.value, q = $("m_q").value.trim().toLowerCase(), bset = new Set(banned.map(b => b.uid));
+  const list = acts.filter(a => (!k || (k === "fan" ? !a.kind.startsWith("a_") : k === "admin" ? a.kind.startsWith("a_") : a.kind === k))
+    && (!actUser || a.uid === actUser || a.target === actUser)
+    && (!q || [a.nick, a.uid, a.detail, a.targetNick, a.target].some(x => String(x || "").toLowerCase().includes(q))));
+  $("m_clear").hidden = !actUser;
+  // 요약
+  const day = Date.now() - 864e5, fans = new Set(acts.filter(a => !a.kind.startsWith("a_")).map(a => a.uid));
+  const today = acts.filter(a => a.at && a.at.getTime() > day && !a.kind.startsWith("a_")).length;
+  $("m_stats").innerHTML = "";
+  [["최근 기록", acts.length], ["오늘 팬 활동", today], ["참여한 팬", fans.size], ["이용 제한", banned.length]].forEach(([l, n]) => {
+    const d = document.createElement("div"); const b = document.createElement("b"); b.textContent = n; const sm = document.createElement("small"); sm.textContent = l; d.append(b, sm); $("m_stats").appendChild(d);
+  });
+  if (!list.length) rows.innerHTML = '<tr><td colspan="5" class="mempty">조건에 맞는 기록이 없어요.</td></tr>';
+  const fmt = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  for (const a of list) {
+    const tr = document.createElement("tr"); if (a.kind.startsWith("a_")) tr.className = "madmin";
+    const td = (txt, cls) => { const c = document.createElement("td"); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); return c; };
+    td(a.at ? fmt.format(a.at) : "", "mtime");
+    const who = td("", "mwho");
+    const nb = document.createElement("button"); nb.type = "button"; nb.className = "mlink";
+    nb.textContent = `${FLAG[a.from] || "🌏"} ${a.nick || "(이름 없음)"}`; nb.title = "이 사용자 활동만 보기";
+    nb.onclick = () => { actUser = a.uid; renderManage(); };
+    const idl = document.createElement("small"); idl.textContent = `ID ${shortId(a.uid)}${bset.has(a.uid) ? " · 🚫제한됨" : ""}`;
+    who.append(nb, idl);
+    td(ACT[a.kind] || a.kind, "mkind");
+    const det = td(a.detail || "", "mdet");
+    if (a.target || a.targetNick) {
+      const tg = document.createElement("small"); tg.textContent = ` → 대상: ${a.targetNick || ""} ${a.target ? "(ID " + shortId(a.target) + ")" : ""}`;
+      if (a.target) { tg.className = "mlink"; tg.style.cursor = "pointer"; tg.onclick = () => { actUser = a.target; renderManage(); }; }
+      det.appendChild(tg);
+    }
+    const act = td("", "mact");
+    const tgt = a.kind.startsWith("a_") ? a.target : a.uid, tnick = a.kind.startsWith("a_") ? a.targetNick : a.nick;
+    if (tgt && tgt !== user.uid) {
+      const b = document.createElement("button"); b.type = "button";
+      if (bset.has(tgt)) { b.textContent = "제한 해제"; b.onclick = () => unban(tgt, tnick); }
+      else { b.textContent = "이용 제한"; b.className = "mban"; b.onclick = () => ban(tgt, tnick, b); }
+      act.appendChild(b);
+    }
+    rows.appendChild(tr);
+  }
+  $("m_more").textContent = acts.length >= actLimit ? `최근 ${actLimit}개 기록만 보여요.` : "";
+  // 제한 목록
+  const bl = $("m_banned"); bl.textContent = "";
+  if (!banned.length) { bl.innerHTML = '<p class="hint">이용 제한된 사용자가 없어요.</p>'; }
+  for (const b of banned) {
+    const row = document.createElement("div"); row.className = "prow";
+    const info = document.createElement("div"); info.className = "pinfo";
+    const n = document.createElement("b"); n.textContent = `${b.nick || "(이름 없음)"} · ID ${shortId(b.uid)}`;
+    const w = document.createElement("small"); w.textContent = b.at?.toDate ? fmt.format(b.at.toDate()) + " 제한" : "";
+    info.append(n, w);
+    const v = document.createElement("button"); v.type = "button"; v.textContent = "활동 보기"; v.onclick = () => { actUser = b.uid; renderManage(); scrollTo(0, 0); };
+    const u = document.createElement("button"); u.type = "button"; u.className = "approve"; u.textContent = "제한 해제"; u.onclick = () => unban(b.uid, b.nick);
+    row.append(info, v, u); bl.appendChild(row);
+  }
+}
+async function ban(uid, nick, btn) {
+  if (btn && btn.dataset.sure !== "1") { btn.dataset.sure = "1"; btn.textContent = "정말 제한할까요?"; setTimeout(() => { if (btn.isConnected) { btn.dataset.sure = ""; btn.textContent = "이용 제한"; } }, 4000); return; }
+  try { await setDoc(doc(db, "banned", uid), { nick: String(nick || "").slice(0, 40), at: serverTimestamp() }); logAct("a_ban", "", { target: uid, targetNick: nick }); } catch (e) {}
+}
+async function unban(uid, nick) {
+  try { await deleteDoc(doc(db, "banned", uid)); logAct("a_unban", "", { target: uid, targetNick: nick }); } catch (e) {}
+}
+$("m_kind").addEventListener("change", renderManage);
+$("m_q").addEventListener("input", renderManage);
+$("m_clear").addEventListener("click", () => { actUser = null; renderManage(); });
+
 /* ---------- live ---------- */
 const isLive = () => !!(live && live.on && live.url && Date.now() - (live.since || 0) < LIVE_MAX);
 function renderLive() {
@@ -785,7 +1047,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -796,6 +1058,11 @@ function renderAdmin() {
   $("adminbtn").textContent = (user && !user.isAnonymous) ? `${t.admin_out} (${user.email || ""})` : t.admin_in;
   $("clipform").hidden = !isAdmin;
   $("adminmsg").textContent = (user && !user.isAnonymous && !isAdmin) ? t.not_admin : "";
+  let nav = document.querySelector('.bar nav a[href="#manage"]');
+  if (isAdmin && !nav) { nav = document.createElement("a"); nav.href = "#manage"; nav.textContent = "🛠 관리"; nav.className = "navmanage"; document.querySelector(".bar nav").appendChild(nav); }
+  if (!isAdmin && nav) nav.remove();
+  if (typeof watchActivity === "function") watchActivity();
+  if (!isAdmin && location.hash === "#manage") location.hash = "#profile";
 }
 
 /* ---------- 꾸밈: 문구 ---------- */
@@ -897,7 +1164,7 @@ function renderCelebrate() {
 celebrate.addEventListener("click", confetti);
 
 /* ---------- 메뉴별 페이지 나누기 ---------- */
-const PAGES = ["profile", "schedule", "music", "clips", "photos", "cheers", "links"];
+const PAGES = ["profile", "schedule", "request", "music", "clips", "photos", "cheers", "links", "manage"];
 const hero = document.querySelector(".hero");
 const mini = document.createElement("div"); mini.className = "minititle";
 mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
@@ -905,7 +1172,7 @@ hero.prepend(mini);
 let firstRoute = true;
 function route() {
   const h = location.hash.slice(1);
-  const page = PAGES.includes(h) ? h : "profile";
+  const page = PAGES.includes(h) && (h !== "manage" || isAdmin) ? h : "profile";
   PAGES.forEach(id => { const sec = document.getElementById(id); if (sec) sec.hidden = id !== page; });
   hero.classList.toggle("compact", page !== "profile");
   document.querySelectorAll(".bar nav a").forEach(a => {
@@ -913,6 +1180,7 @@ function route() {
   });
   if (page === "photos") setTimeout(startPhotos, 0);
   if (page === "music") setTimeout(loadVotes, 0);
+  if (page === "request") setTimeout(() => loadRequests(), 0);
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
   window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); if (firstRoute) setTimeout(() => window.scrollTo(0, 0), 300);
@@ -1015,8 +1283,9 @@ if (!configured) {
     if (!u) { signInAnonymously(auth).catch(() => {}); return; }
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
+    try { const bd = await getDoc(doc(db, "banned", u.uid)); document.body.classList.toggle("banned", bd.exists()); } catch (e) {}
     $("form").hidden = false;
-    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); watchEvPending(); renderEvents(); loadVotes();
+    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); watchEvPending(); renderEvents(); loadVotes(); if (location.hash === "#request") loadRequests(true);
   });
 
   $("adminbtn").addEventListener("click", async () => {
@@ -1032,7 +1301,7 @@ if (!configured) {
     if (!nick || !msg) return;
     if (checkText(nick, msg)) { $("status").textContent = T[lang].blocked; return; }
     const btn = $("send"), st = $("status"); btn.disabled = true; st.textContent = "";
-    try { await setDoc(doc(db, "guestbook", user.uid), { nick, msg, from, at: serverTimestamp() }); st.textContent = T[lang].posted; }
+    try { const wasMine = !!mine; await setDoc(doc(db, "guestbook", user.uid), { nick, msg, from, at: serverTimestamp() }); st.textContent = T[lang].posted; logAct(wasMine ? "cheer_edit" : "cheer", msg, { nick, from }); }
     catch (err) { st.textContent = T[lang].fail; }
     btn.disabled = false;
   });
@@ -1046,7 +1315,7 @@ if (!configured) {
     const song = $("csong").value.trim().slice(0, 60), cap = $("ccap").value.trim().slice(0, 120), date = $("cdate").value || "";
     if (!song) return;
     btn.disabled = true; st.textContent = "";
-    try { await addDoc(collection(db, "clips"), { url, song, cap, date, at: serverTimestamp() }); st.textContent = T[lang].added; $("clipform").reset(); $("cdate").value = date; }
+    try { await addDoc(collection(db, "clips"), { url, song, cap, date, at: serverTimestamp() }); st.textContent = T[lang].added; logAct("a_add_video", song); $("clipform").reset(); $("cdate").value = date; }
     catch (err) { st.textContent = T[lang].fail; }
     btn.disabled = false;
   });
@@ -1063,6 +1332,7 @@ if (!configured) {
     liveBusy = true;
     try {
       await setDoc(doc(db, "status", "live"), on ? { on: false, url: live.url, since: live.since || 0 } : { on: true, url, since: Date.now() });
+      logAct(on ? "a_live_off" : "a_live_on", on ? "" : url);
       if (!on) st.textContent = T[lang].live_auto;
     } catch (e) { st.textContent = T[lang].fail; }
     liveBusy = false;

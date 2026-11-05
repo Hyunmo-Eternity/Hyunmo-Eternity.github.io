@@ -446,3 +446,50 @@ a.buygo:hover{filter:brightness(1.08)}
 .langs button{flex:none;white-space:nowrap}
 @media (max-width:480px){.langs button{padding:4px 9px;font-size:12.5px}}
 .rulesnote{margin:-6px 0 14px;background:var(--paper);border-radius:12px;padding:8px 12px;font-size:13px}
+
+/* --- 관리자 · 활동 기록 --- */
+#manage{background:var(--paper)}
+.navmanage{color:var(--petal)!important;font-weight:700}
+.mstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.mstats div{background:var(--bg);border-radius:14px;padding:10px 14px;display:grid}
+.mstats b{font-family:var(--f-display);font-size:24px;color:var(--leaf);font-variant-numeric:tabular-nums}
+.mstats small{color:var(--muted);font-size:12px}
+.mbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.mbar select,.mbar input{flex:1 1 180px;min-width:0}
+.mclear{font:inherit;font-size:13px;border:1px solid var(--petal);background:var(--petal-soft);color:var(--petal);border-radius:999px;padding:6px 12px;cursor:pointer}
+.mtable{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+.mtable table{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
+.mtable th{position:sticky;top:0;background:var(--bg);text-align:left;font-weight:700;color:var(--muted);padding:8px 10px;white-space:nowrap}
+.mtable td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+.mtable tr.madmin td{background:color-mix(in srgb,var(--leaf) 6%,transparent)}
+.mtime{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+.mwho{white-space:nowrap}
+.mwho small,.mdet small{display:block;color:var(--muted);font-size:11px}
+.mkind{white-space:nowrap}
+.mdet{max-width:280px;overflow-wrap:anywhere}
+.mlink{font:inherit;background:none;border:0;padding:0;color:var(--ink);font-weight:700;cursor:pointer;text-align:left}
+.mlink:hover{color:var(--petal)}
+.mact button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.mact button.mban{border-color:var(--petal);color:var(--petal)}
+.mempty{text-align:center;color:var(--muted);padding:20px}
+.mh3{margin:22px 0 8px;font-family:var(--f-display)}
+.mbanned{display:grid;gap:8px}
+.prow button{font:inherit;font-size:13px;border-radius:999px;padding:5px 14px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted)}
+.bannednote{display:none;background:var(--petal-soft);color:var(--petal);border-radius:12px;padding:10px 14px;font-size:14px;margin:0 0 14px}
+body.banned .bannednote{display:block}
+body.banned form.cheer,body.banned details.suggest{display:none!important}
+
+/* --- 이번 주 신청곡 --- */
+#request{background:var(--t-lav)}
+.rqhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px}
+.rqends{font-size:13px;font-weight:700;color:var(--petal);font-variant-numeric:tabular-nums}
+.rqart{color:var(--muted);font-weight:400}
+.rqby{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+.rqlast{background:linear-gradient(135deg,var(--petal-soft),var(--paper));border-radius:20px;padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 14px color-mix(in srgb,var(--petal) 15%,transparent)}
+.rqlh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}
+.rqlh b{font-family:var(--f-display);font-size:17px}
+.rqsent{font-size:11px;font-weight:700;color:#fff;background:var(--leaf);border-radius:999px;padding:2px 10px}
+.rqlast ol{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:15px}
+.rqadmin{background:var(--paper);border:2px dashed var(--leaf);border-radius:16px;padding:14px 16px;margin-bottom:16px;display:grid;gap:10px}
+.rqmsg{margin:0;white-space:pre-wrap;font:inherit;font-size:13px;background:var(--bg);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere}
+#request .vote{margin-bottom:16px}

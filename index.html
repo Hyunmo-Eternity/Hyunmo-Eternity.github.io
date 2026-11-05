@@ -29,6 +29,7 @@
       <a href="#profile" data-i="nav_profile">프로필</a>
       <a href="#schedule" data-i="nav_sched">일정</a>
       <a href="#music" data-i="nav_music">음악</a>
+      <a href="#request" data-i="nav_req">신청곡</a>
       <a href="#clips" data-i="nav_clips">영상</a>
       <a href="#photos" data-i="nav_photos">사진</a>
       <a href="#cheers" data-i="nav_cheers">응원</a>
@@ -138,6 +139,32 @@
     </details>
   </section>
 
+  <section id="request">
+    <h2 data-i="rq_title">이번 주 신청곡</h2>
+    <p class="lede" data-i="rq_lede"></p>
+    <div class="rqlast" id="rq_last" hidden></div>
+    <div class="rqadmin" id="rq_admin" hidden></div>
+    <div class="vote">
+      <div class="rqhead"><h3 data-i="rq_this">🎶 이번 주 순위</h3><span class="rqends" id="rq_ends"></span></div>
+      <p class="hint" data-i="rq_one"></p>
+      <ol class="vlist" id="rq_list"></ol>
+    </div>
+    <details class="suggest" id="rq_box" open>
+      <summary data-i="rq_form">🎤 현모에게 듣고 싶은 노래 신청하기</summary>
+      <form class="sgf" id="rq_form">
+        <div class="row">
+          <label><span data-i="rq_song">노래 제목</span><input id="rq_song" maxlength="60" required></label>
+          <label><span data-i="rq_artist">원래 부른 가수</span><input id="rq_artist" maxlength="40" required></label>
+        </div>
+        <div class="row">
+          <label><span data-i="l_nick">닉네임</span><input id="rq_nick" maxlength="24" required autocomplete="nickname"></label>
+          <label><span data-i="l_from">어디에서</span><select id="rq_from"></select></label>
+        </div>
+        <div class="actions"><button class="go" type="submit" id="rq_send" data-i="rq_send">신청하기</button><span class="status" id="rq_status" aria-live="polite"></span></div>
+      </form>
+    </details>
+  </section>
+
   <section id="music">
     <h2 data-i="nav_music">음악</h2>
     <p class="lede" data-i="music_lede"></p>
@@ -209,6 +236,7 @@
     <h2 data-i="cheers_title">응원 메시지</h2>
     <p class="lede" data-i="cheers_lede"></p>
     <p class="hint rulesnote" data-i="rules_note"></p>
+    <p class="bannednote" data-i="banned_note"></p>
     <form class="cheer" id="form" hidden>
       <div class="row">
         <label><span data-i="l_nick">닉네임</span><input id="nick" maxlength="24" required autocomplete="nickname"></label>
@@ -225,6 +253,21 @@
       <div class="actions"><button class="go" id="send" type="submit" data-i="b_post">남기기</button><span class="status" id="status" aria-live="polite"></span></div>
     </form>
     <div class="notes" id="notes"><div class="empty" data-i="loading">불러오는 중…</div></div>
+  </section>
+
+  <section id="manage" hidden>
+    <h2>관리자 · 활동 기록</h2>
+    <p class="lede">팬들이 남긴 글, 올린 영상·사진·일정 제보, 투표와 관리자 처리 내역이에요. 관리자에게만 보여요.</p>
+    <div class="mstats" id="m_stats"></div>
+    <div class="mbar">
+      <select id="m_kind" aria-label="종류"></select>
+      <input id="m_q" type="search" placeholder="닉네임·아이디·내용 검색" aria-label="검색">
+      <button type="button" class="mclear" id="m_clear" hidden>✕ 사용자 필터 해제</button>
+    </div>
+    <div class="mtable"><table><thead><tr><th>시간</th><th>사용자</th><th>활동</th><th>내용</th><th></th></tr></thead><tbody id="m_rows"></tbody></table></div>
+    <p class="hint" id="m_more"></p>
+    <h3 class="mh3">🚫 이용 제한된 사용자</h3>
+    <div id="m_banned" class="mbanned"></div>
   </section>
 
   <section id="links">
