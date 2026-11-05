@@ -39,6 +39,6 @@ export const QUIZ = [
   { a: 0,
     q: { ko: "2026년 5월에 나온 현모의 최신 싱글은?", en: "Which single did Hyunmo release in May 2026?",
          th: "ซิงเกิลที่ฮยอนโมปล่อยในเดือนพฤษภาคม 2026 คือ?", ja: "2026年5月に出たヒョンモの最新シングルは？" },
-    o: { ko: ["Love Will Do", "How Have You Been", "꽃반지", "초록빛 꿈"], en: ["Love Will Do", "How Have You Been", "Flower Ring", "Green Dream"],
-         th: ["Love Will Do", "How Have You Been", "Flower Ring", "Green Dream"], ja: ["Love Will Do", "How Have You Been", "花の指輪", "緑色の夢"] } },
+    o: { ko: ["Love Will Do", "계절이 멈춘 편지와 늦은 인사", "꽃반지", "초록빛 꿈"], en: ["Love Will Do", "Mo's Letter", "Flower Ring", "Green Dream"],
+         th: ["Love Will Do", "Mo's Letter", "Flower Ring", "Green Dream"], ja: ["Love Will Do", "モの手紙", "花の指輪", "緑色の夢"] } },
 ];

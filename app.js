@@ -587,7 +587,7 @@ function renderVotes() {
     const li = document.createElement("li");
     const b = document.createElement("button"); b.type = "button"; b.className = "vbtn" + (myVote === song ? " mine" : "");
     b.style.setProperty("--p", pct + "%"); b.disabled = voteBusy;
-    const rank = document.createElement("span"); rank.className = "vr"; rank.textContent = total ? ["🥇", "🥈", "🥉"][i] || (i + 1) : "♪";
+    const rank = document.createElement("span"); rank.className = "vr"; rank.textContent = n > 0 ? ["🥇", "🥈", "🥉"][i] || (i + 1) : "♪";
     const nm = document.createElement("span"); nm.className = "vn"; nm.textContent = song;
     const ct = document.createElement("span"); ct.className = "vc"; ct.textContent = voteCounts ? `${pct}% · ${n} ${t.v_votes}` : "";
     b.append(rank, nm, ct);

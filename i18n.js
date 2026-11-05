@@ -40,7 +40,6 @@ ja:{nav_sched:"スケジュール",h_send:"ヒョンモにハートを送る",h_
 
 export const DISC=[
  {d:"2020.11.04",t:"초록빛 꿈",g:{ko:"Green Dream",en:"Green Dream",th:"Green Dream",ja:"緑色の夢"},tag:"debut"},
- {d:"2022",t:"How Have You Been",g:{ko:"「스타 어웨이크닝」 Part 2",en:"“Stars Awakening” Part 2",th:"“Stars Awakening” Part 2",ja:"「スターアウェイキング」Part 2"}},
  {d:"2024.06.03",t:"お花の指輪",g:{ko:"꽃반지 일본어 싱글",en:"Flower Ring · Japanese single",th:"Flower Ring · ซิงเกิลภาษาญี่ปุ่น",ja:"お花の指輪"},tag:"jp"},
  {d:"2024.07.04",t:"꽃반지",g:{ko:"Flower Ring",en:"Flower Ring",th:"Flower Ring",ja:"花の指輪"}},
  {d:"2024.07.30",t:"계절이 멈춘 편지와 늦은 인사",g:{ko:"Mo's Letter · 일본어 버전 「モの手紙」 수록",en:"Mo's Letter · with Japanese ver. 「モの手紙」",th:"Mo's Letter · มีเวอร์ชันญี่ปุ่น 「モの手紙」",ja:"季節が止まった手紙と遅い挨拶 ·「モの手紙」収録"}},
