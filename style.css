@@ -419,3 +419,23 @@ a.evt{text-decoration:underline;text-decoration-color:var(--petal)}
 .buygo{justify-self:start;text-decoration:none;display:inline-block;margin-top:4px}
 a.buygo{font:inherit;font-weight:700;background:var(--leaf);color:var(--paper);border-radius:999px;padding:10px 22px}
 a.buygo:hover{filter:brightness(1.08)}
+
+/* --- 노래 플레이어: 화면 아래 떠 있는 작은 바 (모든 페이지) --- */
+.player{position:fixed;z-index:40;left:50%;transform:translateX(-50%);
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100% - 32px));margin:0;
+  display:flex;align-items:center;gap:10px;flex-wrap:nowrap;justify-content:flex-start;
+  background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(10px);
+  border-radius:999px;padding:8px 10px 8px 8px;box-shadow:0 10px 30px color-mix(in srgb,var(--ink) 18%,transparent);overflow:hidden}
+.player::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:var(--prog,0%);background:var(--petal);transition:width .3s linear}
+.player button.pp{flex:none;width:42px;height:42px;padding:0;border-radius:50%;font-size:15px;background:var(--petal);color:#fff;display:grid;place-items:center}
+.player .np{flex:1;min-width:0;display:grid;line-height:1.3}
+.player .np small{font-size:11px;color:var(--muted)}
+.player .np b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player .np .nt{font-variant-numeric:tabular-nums}
+.player .skip{flex:none;width:36px;height:36px;padding:0;border-radius:50%;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:13px}
+.hero.compact .player{display:flex}
+@media (prefers-reduced-motion:no-preference){
+  .player.playing button.pp{animation:beat 1.6s ease-in-out infinite}
+  @keyframes beat{50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--petal) 20%,transparent)}}
+}
+.wrap{padding-bottom:84px}

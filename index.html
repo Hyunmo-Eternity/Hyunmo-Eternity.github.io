@@ -54,12 +54,6 @@
       <div class="htotal"><b id="h_total">0</b> <span data-i="h_total">개의 하트가 전 세계에서 모였어요</span></div>
       <ol class="hboard" id="h_board"></ol>
     </div>
-    <div class="player" id="player" hidden>
-      <button type="button" id="playbtn" data-i="play">♪ 현모 노래 듣기</button>
-      <button type="button" class="skip" id="nextbtn" aria-label="Next">▶▶</button>
-      <span class="np" id="np" hidden><span data-i="now">지금 재생 중</span> · <b id="nptitle"></b></span>
-      <audio id="audio" preload="none"></audio>
-    </div>
     <div class="live" id="live" hidden>
       <span class="on"><span class="dot"></span><span data-i="live_on">지금 틱톡 라이브 중</span></span>
       <div class="head" data-i="live_head">현모가 지금 라이브로 노래하고 있어요</div>
@@ -236,6 +230,13 @@
     <p data-i="src"></p>
     <p><button type="button" class="adminlink" id="adminbtn" data-i="admin_in">관리자 로그인</button> <span id="adminmsg"></span></p>
   </footer>
+</div>
+
+<div class="player" id="player" hidden>
+  <button type="button" class="pp" id="playbtn" aria-label="Play">▶</button>
+  <span class="np" id="np" hidden><small id="nplabel"></small><b id="nptitle"></b><small id="nptime" class="nt">0:00</small></span>
+  <button type="button" class="skip" id="nextbtn" aria-label="Next">⏭</button>
+  <audio id="audio" preload="metadata"></audio>
 </div>
 
 <script type="module" src="app.js"></script>

@@ -3,7 +3,9 @@ import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, Google
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
-import { PLAYLIST } from "./music/playlist.js";
+import * as PL from "./music/playlist.js";
+const PLAYLIST = PL.PLAYLIST || [];
+const AUTO_START = PL.AUTO_START !== false;
 import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
 import { QUIZ } from "./quiz.js";
 import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
@@ -77,27 +79,58 @@ function disc() {
   }
 }
 
-/* ---------- music player (starts only when a visitor taps, as browsers require) ---------- */
-let track = 0;
+/* ---------- 노래 플레이어 ---------- */
+// 브라우저는 소리 자동 재생을 막아요. 그래서 먼저 바로 재생을 시도하고, 막히면 방문자가 화면을 처음 누르는 순간 시작해요.
+// 방문자가 직접 멈추면 기억해 두고 다음에 와도 저절로 켜지 않아요.
+let track = 0, userPaused = false, autoArmed = false;
+try { userPaused = localStorage.getItem("hm_music_off") === "1"; } catch (e) {}
 const audio = $("audio");
+audio.preload = "metadata";
 function playAt(i) {
   track = (i + PLAYLIST.length) % PLAYLIST.length;
   audio.src = PLAYLIST[track].file;
-  audio.play().catch(() => {});
+  return audio.play();
 }
+function fmtTime(sec) { if (!isFinite(sec)) return "0:00"; const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return `${m}:${String(s).padStart(2, "0")}`; }
 function renderPlayer() {
   $("player").hidden = !PLAYLIST.length;
   if (!PLAYLIST.length) return;
   const playing = !audio.paused && !!audio.src;
-  $("playbtn").textContent = playing ? T[lang].pause : T[lang].play;
-  $("np").hidden = !audio.src;
+  $("player").classList.toggle("playing", playing);
+  $("playbtn").textContent = playing ? "❚❚" : "▶";
+  $("playbtn").setAttribute("aria-label", playing ? T[lang].pause : T[lang].play);
+  $("np").hidden = false;
   $("nptitle").textContent = PLAYLIST[track]?.title || "";
+  $("nplabel").textContent = playing ? T[lang].now : T[lang].play;
   $("nextbtn").hidden = PLAYLIST.length < 2;
 }
-$("playbtn").addEventListener("click", () => { if (!audio.src) playAt(0); else if (audio.paused) audio.play().catch(() => {}); else audio.pause(); });
-$("nextbtn").addEventListener("click", () => playAt(track + 1));
-audio.addEventListener("ended", () => { if (PLAYLIST.length > 1) playAt(track + 1); });
+function startMusic() {
+  if (!PLAYLIST.length || userPaused) return;
+  (audio.src ? audio.play() : playAt(track)).catch(() => armFirstTouch());
+}
+function armFirstTouch() {
+  if (autoArmed) return; autoArmed = true;
+  const go = e => {
+    if (e.target.closest && e.target.closest("#player")) return cleanup(); // 플레이어를 직접 누른 경우는 버튼이 처리해요
+    cleanup();
+    if (!userPaused && audio.paused) (audio.src ? audio.play() : playAt(track)).catch(() => {});
+  };
+  const cleanup = () => { ["pointerdown", "keydown"].forEach(ev => removeEventListener(ev, go, true)); };
+  ["pointerdown", "keydown"].forEach(ev => addEventListener(ev, go, true));
+}
+$("playbtn").addEventListener("click", () => {
+  if (audio.paused) { userPaused = false; try { localStorage.removeItem("hm_music_off"); } catch (e) {} (audio.src ? audio.play() : playAt(track)).catch(() => {}); }
+  else { userPaused = true; try { localStorage.setItem("hm_music_off", "1"); } catch (e) {} audio.pause(); }
+});
+$("nextbtn").addEventListener("click", () => { userPaused = false; playAt(track + 1).catch(() => {}); });
+audio.addEventListener("ended", () => { playAt(track + 1).catch(() => {}); });
+audio.addEventListener("timeupdate", () => {
+  const p = audio.duration ? audio.currentTime / audio.duration * 100 : 0;
+  $("player").style.setProperty("--prog", p + "%");
+  $("nptime").textContent = `${fmtTime(audio.currentTime)} / ${fmtTime(audio.duration)}`;
+});
 ["play", "pause", "loadstart"].forEach(ev => audio.addEventListener(ev, renderPlayer));
+if (AUTO_START && PLAYLIST.length) setTimeout(startMusic, 600);
 audio.addEventListener("play", () => { if (typeof onlyThis === "function") onlyThis(null); });
 
 /* ---------- guestbook ---------- */
