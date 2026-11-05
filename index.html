@@ -18,6 +18,7 @@
   <header class="bar">
     <nav>
       <a href="#profile" data-i="nav_profile">프로필</a>
+      <a href="#schedule" data-i="nav_sched">일정</a>
       <a href="#music" data-i="nav_music">음악</a>
       <a href="#clips" data-i="nav_clips">영상</a>
       <a href="#photos" data-i="nav_photos">사진</a>
@@ -43,6 +44,14 @@
     <div class="counts">
       <div class="count"><small data-i="since">데뷔한 지</small><b id="dplus">D+0</b></div>
       <div class="count hi"><small data-i="bday">생일까지</small><b id="dbday">D-0</b></div>
+    </div>
+    <div class="hearts" id="hearts">
+      <div class="hrow">
+        <button type="button" class="heartbtn" id="heartbtn"><span class="hb-ico" aria-hidden="true">💗</span><span data-i="h_send">현모에게 하트 보내기</span></button>
+        <label class="hfrom"><span data-i="h_from">내 나라</span><select id="h_from"></select></label>
+      </div>
+      <div class="htotal"><b id="h_total">0</b> <span data-i="h_total">개의 하트가 전 세계에서 모였어요</span></div>
+      <ol class="hboard" id="h_board"></ol>
     </div>
     <div class="player" id="player" hidden>
       <button type="button" id="playbtn" data-i="play">♪ 현모 노래 듣기</button>
@@ -73,11 +82,39 @@
       <dt data-i="f_agency">소속사</dt><dd>Jimmy Makes Music</dd>
       <dt data-i="f_show">출연</dt><dd data-i="v_show">채널A 「스타 어웨이크닝」 (2022)</dd>
     </dl>
+    <div class="quiz" id="quiz">
+      <h3 data-i="qz_title">🌱 현모를 얼마나 알고 있나요?</h3>
+      <div id="qz_body"></div>
+    </div>
+  </section>
+
+  <section id="schedule">
+    <h2 data-i="sched_title">일정</h2>
+    <p class="lede" data-i="sched_lede"></p>
+    <div class="nextup" id="nextup" hidden></div>
+    <form class="clipf" id="evform" hidden>
+      <div class="row">
+        <label><span data-i="ev_when">날짜와 시간 (한국 시간)</span><input id="ev_when" type="datetime-local" required></label>
+        <label><span data-i="ev_kind">종류</span><select id="ev_kind"></select></label>
+      </div>
+      <label><span data-i="ev_title">제목</span><input id="ev_title" maxlength="80" required></label>
+      <div class="row">
+        <label><span data-i="ev_place">장소</span><input id="ev_place" maxlength="80"></label>
+        <label><span data-i="ev_link">링크 (선택)</span><input id="ev_link" type="url" inputmode="url"></label>
+      </div>
+      <div class="actions"><button class="go" type="submit" id="ev_add" data-i="ev_add">일정 추가</button><span class="status" id="ev_status" aria-live="polite"></span></div>
+    </form>
+    <ol class="events" id="events"></ol>
   </section>
 
   <section id="music">
     <h2 data-i="nav_music">음악</h2>
     <p class="lede" data-i="music_lede"></p>
+    <div class="vote" id="vote">
+      <h3 data-i="v_title">🏆 최애곡 투표</h3>
+      <p class="hint" data-i="v_lede"></p>
+      <ol class="vlist" id="vlist"></ol>
+    </div>
     <ol class="disc" id="disc"></ol>
   </section>
 

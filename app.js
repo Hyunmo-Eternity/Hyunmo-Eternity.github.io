@@ -1,10 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
 import { PLAYLIST } from "./music/playlist.js";
 import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
+import { QUIZ } from "./quiz.js";
 
 const $ = id => document.getElementById(id);
 const configured = !String(firebaseConfig.apiKey).includes("붙여넣기");
@@ -438,6 +439,213 @@ $("upform").addEventListener("submit", async e => {
   btn.disabled = false;
 });
 
+/* ---------- 공통: 나라 이름 ---------- */
+const COUNTRIES = ["KR", "TH", "SG", "PH", "US", "JP", "ID", "MY", "VN", "XX"];
+function countryName(cc) {
+  if (cc === "XX") return { ko: "기타", en: "Other", th: "อื่น ๆ", ja: "その他" }[lang];
+  try { return new Intl.DisplayNames([lang], { type: "region" }).of(cc); } catch (e) { return cc; }
+}
+function guessCountry() {
+  const m = /-([A-Z]{2})$/i.exec(navigator.language || ""); const cc = m ? m[1].toUpperCase() : "";
+  return COUNTRIES.includes(cc) ? cc : ({ ko: "KR", th: "TH", ja: "JP" }[(navigator.language || "").slice(0, 2)] || "XX");
+}
+
+/* ---------- 전 세계 하트 보내기 ---------- */
+let hearts = {}, heartQueue = 0, heartTimer = null;
+let myCountry = (() => { try { return localStorage.getItem("hm_cc") || ""; } catch (e) { return ""; } })() || guessCountry();
+function renderHearts() {
+  const sel = $("h_from"), cur = sel.value || myCountry;
+  sel.textContent = "";
+  COUNTRIES.forEach(cc => { const o = document.createElement("option"); o.value = cc; o.textContent = `${FLAG[cc]} ${countryName(cc)}`; sel.appendChild(o); });
+  sel.value = cur;
+  const rows = Object.entries(hearts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((s, [, n]) => s + n, 0) + heartQueue;
+  $("h_total").textContent = total.toLocaleString();
+  const board = $("h_board"); board.textContent = "";
+  const max = rows.length ? rows[0][1] : 1;
+  rows.slice(0, 5).forEach(([cc, n]) => {
+    const li = document.createElement("li");
+    const name = document.createElement("span"); name.className = "hn"; name.textContent = `${FLAG[cc] || "🌏"} ${countryName(cc)}`;
+    const bar = document.createElement("span"); bar.className = "hbar"; bar.style.setProperty("--w", Math.max(4, n / max * 100) + "%");
+    const num = document.createElement("span"); num.className = "hc"; num.textContent = n.toLocaleString();
+    li.append(name, bar, num); board.appendChild(li);
+  });
+}
+$("h_from").addEventListener("change", () => { myCountry = $("h_from").value; try { localStorage.setItem("hm_cc", myCountry); } catch (e) {} });
+function floatHeart(x, y) {
+  if (reduceMotion) return;
+  const h = document.createElement("span"); h.className = "fheart"; h.textContent = ["💗", "💖", "🌸", "💕"][Math.floor(Math.random() * 4)];
+  h.style.left = x + "px"; h.style.top = y + "px"; h.style.setProperty("--dx", (Math.random() * 80 - 40) + "px");
+  document.body.appendChild(h); setTimeout(() => h.remove(), 1400);
+}
+$("heartbtn").addEventListener("click", e => {
+  const r = $("heartbtn").getBoundingClientRect();
+  floatHeart(r.left + r.width / 2 + (Math.random() * 30 - 15), r.top);
+  heartQueue = Math.min(heartQueue + 1, 30); renderHearts();
+  clearTimeout(heartTimer); heartTimer = setTimeout(flushHearts, 900);
+});
+async function flushHearts() {
+  if (!heartQueue || !db || !user) return;
+  const n = heartQueue, cc = myCountry; heartQueue = 0;
+  try { await setDoc(doc(db, "hearts", cc), { n: increment(n) }, { merge: true }); }
+  catch (e) { renderHearts(); }
+}
+function watchHearts() {
+  onSnapshot(collection(db, "hearts"), snap => {
+    hearts = {}; snap.docs.forEach(d => { const n = d.data().n; if (typeof n === "number") hearts[d.id] = n; }); renderHearts();
+  }, () => {});
+}
+
+/* ---------- 일정 (스케줄 캘린더) ---------- */
+let events = null;
+const KINDS = ["show", "tv", "live", "release", "etc"];
+const KIND_ICON = { show: "🎤", tv: "📺", live: "🔴", release: "💿", etc: "✨" };
+function fmtWhen(ms, tz) {
+  const loc = { ko: "ko-KR", ja: "ja-JP", th: "th-TH" }[lang] || "en-US";
+  return new Intl.DateTimeFormat(loc, { timeZone: tz, month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(ms);
+}
+function renderEvents() {
+  const t = T[lang], list = $("events"); list.textContent = "";
+  const ks = $("ev_kind"); const kv = ks.value; ks.textContent = "";
+  KINDS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = `${KIND_ICON[k]} ${t["k_" + k]}`; ks.appendChild(o); });
+  if (kv) ks.value = kv;
+  $("evform").hidden = !isAdmin;
+  if (!events) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.loading; list.appendChild(e); $("nextup").hidden = true; return; }
+  const now = Date.now(), LEN = 3 * 3600e3;
+  const up = events.filter(e => e.when + LEN > now).sort((a, b) => a.when - b.when);
+  const past = events.filter(e => e.when + LEN <= now).sort((a, b) => b.when - a.when).slice(0, 5);
+  if (!up.length && !past.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.noevents; list.appendChild(e); }
+  const myTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const add = (ev, isPast) => {
+    const li = document.createElement("li"); li.className = "ev" + (isPast ? " past" : "");
+    const ic = document.createElement("span"); ic.className = "evi"; ic.textContent = KIND_ICON[ev.kind] || "✨";
+    const body = document.createElement("div"); body.className = "evb";
+    const ti = document.createElement(ev.link ? "a" : "b"); ti.className = "evt"; ti.textContent = ev.title;
+    if (ev.link) { ti.href = ev.link; ti.target = "_blank"; ti.rel = "noopener"; }
+    const when = document.createElement("div"); when.className = "evw"; when.textContent = fmtWhen(ev.when, myTz);
+    body.append(ti, when);
+    if (myTz !== "Asia/Seoul") { const k = document.createElement("small"); k.textContent = `${t.kst}: ${fmtWhen(ev.when, "Asia/Seoul")}`; body.appendChild(k); }
+    if (ev.place) { const pl = document.createElement("small"); pl.textContent = "📍 " + ev.place; body.appendChild(pl); }
+    li.append(ic, body);
+    if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "events", ev.id)).catch(() => {}); li.appendChild(x); }
+    list.appendChild(li);
+  };
+  up.forEach(ev => add(ev, false));
+  if (past.length) { const h = document.createElement("li"); h.className = "evsep"; h.textContent = t.past; list.appendChild(h); past.forEach(ev => add(ev, true)); }
+  // 다음 일정까지 남은 시간
+  const nx = up[0], box = $("nextup");
+  box.hidden = !nx;
+  if (nx) {
+    const ms = nx.when - now;
+    let left;
+    if (ms <= 0) left = t.d_now;
+    else { const d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4);
+      left = (d ? `${d}${t.d_days} ` : "") + `${h}${t.d_hours} ${m}${t.d_min}`; }
+    box.innerHTML = ""; const a = document.createElement("small"); a.textContent = `${KIND_ICON[nx.kind] || "✨"} ${nx.title}`;
+    const b = document.createElement("b"); b.textContent = ms <= 0 ? left : `${t.next_up} ${left}`;
+    box.append(b, a);
+  }
+}
+setInterval(() => { if (events) renderEvents(); }, 60000);
+function watchEvents() {
+  onSnapshot(query(collection(db, "events"), orderBy("when", "asc"), limit(200)), snap => {
+    events = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => typeof e.when === "number"); renderEvents();
+  }, () => { events = []; renderEvents(); });
+}
+$("evform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("ev_status"), v = $("ev_when").value; // 예: 2026-12-24T19:30 → 한국 시간으로 저장
+  if (!v || !isAdmin) return;
+  const when = Date.parse(v + ":00+09:00");
+  const link = $("ev_link").value.trim();
+  if (link && !/^https:\/\//.test(link)) { st.textContent = t.badurl; return; }
+  try {
+    await addDoc(collection(db, "events"), { when, kind: $("ev_kind").value, title: $("ev_title").value.trim().slice(0, 80), place: $("ev_place").value.trim().slice(0, 80), link, at: serverTimestamp() });
+    st.textContent = t.ev_added; $("ev_title").value = ""; $("ev_place").value = ""; $("ev_link").value = "";
+  } catch (err) { st.textContent = t.fail; }
+});
+
+/* ---------- 최애곡 투표 ---------- */
+let voteCounts = null, myVote = null, voteBusy = false, votesLoadedAt = 0;
+async function loadVotes(force) {
+  if (!db || !user) return;
+  if (!force && Date.now() - votesLoadedAt < 30000) return;
+  votesLoadedAt = Date.now();
+  try {
+    const mine = await getDoc(doc(db, "votes", user.uid)); myVote = mine.exists() ? mine.data().song : null;
+    const counts = await Promise.all(DISC.map(s => getCountFromServer(query(collection(db, "votes"), where("song", "==", s.t))).then(r => r.data().count).catch(() => 0)));
+    voteCounts = {}; DISC.forEach((s, i) => voteCounts[s.t] = counts[i]);
+  } catch (e) { voteCounts = voteCounts || {}; }
+  renderVotes();
+}
+function renderVotes() {
+  const t = T[lang], ol = $("vlist"); ol.textContent = "";
+  const total = voteCounts ? Object.values(voteCounts).reduce((a, b) => a + b, 0) : 0;
+  const order = DISC.map(s => s.t).sort((a, b) => ((voteCounts || {})[b] || 0) - ((voteCounts || {})[a] || 0));
+  order.forEach((song, i) => {
+    const n = (voteCounts || {})[song] || 0, pct = total ? Math.round(n / total * 100) : 0;
+    const li = document.createElement("li");
+    const b = document.createElement("button"); b.type = "button"; b.className = "vbtn" + (myVote === song ? " mine" : "");
+    b.style.setProperty("--p", pct + "%"); b.disabled = voteBusy;
+    const rank = document.createElement("span"); rank.className = "vr"; rank.textContent = total ? ["🥇", "🥈", "🥉"][i] || (i + 1) : "♪";
+    const nm = document.createElement("span"); nm.className = "vn"; nm.textContent = song;
+    const ct = document.createElement("span"); ct.className = "vc"; ct.textContent = voteCounts ? `${pct}% · ${n} ${t.v_votes}` : "";
+    b.append(rank, nm, ct);
+    if (myVote === song) { const m = document.createElement("span"); m.className = "vmine"; m.textContent = t.v_my; nm.appendChild(m); }
+    b.onclick = async () => {
+      if (!db || !user || voteBusy || myVote === song) return;
+      voteBusy = true; const prev = myVote; myVote = song;
+      if (voteCounts) { if (prev) voteCounts[prev] = Math.max(0, (voteCounts[prev] || 1) - 1); voteCounts[song] = (voteCounts[song] || 0) + 1; }
+      renderVotes();
+      try { await setDoc(doc(db, "votes", user.uid), { song, at: serverTimestamp() }); } catch (e) { myVote = prev; }
+      voteBusy = false; loadVotes(true);
+    };
+    li.appendChild(b); ol.appendChild(li);
+  });
+}
+
+/* ---------- 현모 팬 퀴즈 ---------- */
+let qz = { i: -1, score: 0, picked: null };
+function renderQuiz() {
+  const t = T[lang], box = $("qz_body"); box.textContent = "";
+  if (qz.i < 0) {
+    const best = (() => { try { return localStorage.getItem("hm_quiz") ; } catch (e) { return null; } })();
+    if (best !== null) { const p = document.createElement("p"); p.className = "hint"; p.textContent = `${t.qz_score}: ${best} / ${QUIZ.length}`; box.appendChild(p); }
+    const go = document.createElement("button"); go.type = "button"; go.className = "go"; go.textContent = t.qz_start;
+    go.onclick = () => { qz = { i: 0, score: 0, picked: null }; renderQuiz(); }; box.appendChild(go); return;
+  }
+  if (qz.i >= QUIZ.length) {
+    const r = qz.score / QUIZ.length, badge = r === 1 ? t.b3 : r >= .7 ? t.b2 : r >= .4 ? t.b1 : t.b0;
+    const res = document.createElement("div"); res.className = "qzres";
+    const sc = document.createElement("b"); sc.textContent = `${qz.score} / ${QUIZ.length}`;
+    const bd = document.createElement("span"); bd.className = "badge2"; bd.textContent = badge;
+    res.append(sc, bd); box.appendChild(res);
+    try { const prev = +localStorage.getItem("hm_quiz") || 0; if (qz.score >= prev) localStorage.setItem("hm_quiz", qz.score); } catch (e) {}
+    if (r === 1) confetti();
+    const again = document.createElement("button"); again.type = "button"; again.className = "go"; again.textContent = t.qz_again;
+    again.onclick = () => { qz = { i: 0, score: 0, picked: null }; renderQuiz(); }; box.appendChild(again); return;
+  }
+  const Q = QUIZ[qz.i];
+  const prog = document.createElement("div"); prog.className = "qzprog"; prog.style.setProperty("--p", (qz.i / QUIZ.length * 100) + "%");
+  const n = document.createElement("small"); n.textContent = `${qz.i + 1} / ${QUIZ.length}`;
+  const q = document.createElement("p"); q.className = "qzq"; q.textContent = Q.q[lang];
+  const opts = document.createElement("div"); opts.className = "qzopts";
+  Q.o[lang].forEach((txt, k) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = txt; b.className = "qzo";
+    if (qz.picked !== null) { b.disabled = true; if (k === Q.a) b.classList.add("right"); else if (k === qz.picked) b.classList.add("wrong"); }
+    b.onclick = () => { if (qz.picked !== null) return; qz.picked = k; if (k === Q.a) qz.score++; renderQuiz(); };
+    opts.appendChild(b);
+  });
+  box.append(prog, n, q, opts);
+  if (qz.picked !== null) {
+    const fb = document.createElement("p"); fb.className = "qzfb " + (qz.picked === Q.a ? "ok" : "no");
+    fb.textContent = qz.picked === Q.a ? t.qz_ok : `${t.qz_no} "${Q.o[lang][Q.a]}"`;
+    const nx = document.createElement("button"); nx.type = "button"; nx.className = "go"; nx.textContent = t.qz_next;
+    nx.onclick = () => { qz.i++; qz.picked = null; renderQuiz(); };
+    box.append(fb, nx);
+  }
+}
+
 /* ---------- live ---------- */
 const isLive = () => !!(live && live.on && live.url && Date.now() - (live.since || 0) < LIVE_MAX);
 function renderLive() {
@@ -464,7 +672,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -573,7 +781,7 @@ function renderCelebrate() {
 celebrate.addEventListener("click", confetti);
 
 /* ---------- 메뉴별 페이지 나누기 ---------- */
-const PAGES = ["profile", "music", "clips", "photos", "cheers", "links"];
+const PAGES = ["profile", "schedule", "music", "clips", "photos", "cheers", "links"];
 const hero = document.querySelector(".hero");
 const mini = document.createElement("div"); mini.className = "minititle";
 mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
@@ -588,9 +796,10 @@ function route() {
     if (a.getAttribute("href") === "#" + page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
   if (page === "photos") setTimeout(startPhotos, 0);
+  if (page === "music") setTimeout(loadVotes, 0);
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
-  window.scrollTo(0, 0);
+  window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); if (firstRoute) setTimeout(() => window.scrollTo(0, 0), 300);
   firstRoute = false;
 }
 addEventListener("hashchange", route);
@@ -682,6 +891,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
   }, () => { clips = []; renderClips(); });
+  watchHearts(); watchEvents();
   onSnapshot(doc(db, "status", "live"), d => { live = d.exists() ? d.data() : null; renderLive(); }, () => {});
 
   // 방문자는 보이지 않게 익명 로그인 → 로그인 화면 없이 응원 메시지를 쓸 수 있어요
@@ -690,7 +900,7 @@ if (!configured) {
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     $("form").hidden = false;
-    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending();
+    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); renderEvents(); loadVotes();
   });
 
   $("adminbtn").addEventListener("click", async () => {
