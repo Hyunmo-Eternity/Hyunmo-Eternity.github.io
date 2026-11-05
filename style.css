@@ -439,3 +439,9 @@ a.buygo:hover{filter:brightness(1.08)}
   @keyframes beat{50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--petal) 20%,transparent)}}
 }
 .wrap{padding-bottom:84px}
+
+/* --- 언어 버튼 7개: 좁은 화면에선 옆으로 밀어서 보기 --- */
+.langs{max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.langs::-webkit-scrollbar{display:none}
+.langs button{flex:none;white-space:nowrap}
+@media (max-width:480px){.langs button{padding:4px 9px;font-size:12.5px}}

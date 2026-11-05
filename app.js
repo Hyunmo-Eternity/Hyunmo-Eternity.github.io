@@ -18,7 +18,7 @@ let lang = "ko";
 try {
   const s = localStorage.getItem("hm_lang");
   if (s && T[s]) lang = s;
-  else { const n = (navigator.language || "").slice(0, 2); lang = T[n] ? n : (n && n !== "ko" ? "en" : "ko"); }
+  else { const n = (navigator.language || "").slice(0, 2), m = { tl: "fil", fi: "en" }[n] || ((navigator.language || "").toLowerCase().startsWith("fil") ? "fil" : n); lang = T[m] ? m : (n && n !== "ko" ? "en" : "ko"); }
 } catch (e) {}
 
 /* ---------- state ---------- */
@@ -58,7 +58,7 @@ function kstToday() { const n = new Date(Date.now() + 9 * 3600e3); return Date.U
 function counts() {
   const t = T[lang], today = kstToday(), day = 864e5;
   const dp = Math.round((today - Date.UTC(2020, 10, 4)) / day) + 1;
-  $("dplus").textContent = (lang === "en" || lang === "th") ? `${dp.toLocaleString()} ${t.days}` : `${dp.toLocaleString()}${t.days}`;
+  $("dplus").textContent = (lang === "en" || lang === "th" || lang === "fil" || lang === "es") ? `${dp.toLocaleString()} ${t.days}` : `${dp.toLocaleString()}${t.days}`;
   const y = new Date(today).getUTCFullYear(); let b = Date.UTC(y, 8, 11); if (b < today) b = Date.UTC(y + 1, 8, 11);
   const dd = Math.round((b - today) / day);
   $("dbday").textContent = dd === 0 ? t.today : `D-${dd}`;
@@ -139,7 +139,7 @@ function renderNotes() {
   const msg = k => { const e = document.createElement("div"); e.className = "empty"; e.textContent = t[k]; box.appendChild(e); };
   if (!notes) return msg(notesState === "slow" ? "slow" : "loading");
   if (!notes.length) return msg("empty");
-  const fmt = new Intl.DateTimeFormat({ ko:"ko-KR", ja:"ja-JP", th:"th-TH" }[lang] || "en-US", { year:"numeric", month:"short", day:"numeric" });
+  const fmt = new Intl.DateTimeFormat({ ko:"ko-KR", ja:"ja-JP", th:"th-TH", zh:"zh-CN", fil:"fil-PH", es:"es-ES" }[lang] || "en-US", { year:"numeric", month:"short", day:"numeric" });
   for (const n of notes) {
     const a = document.createElement("article"); a.className = "note";
     const who = document.createElement("div"); who.className = "who";
@@ -476,12 +476,12 @@ $("upform").addEventListener("submit", async e => {
 /* ---------- 공통: 나라 이름 ---------- */
 const COUNTRIES = ["KR", "TH", "SG", "PH", "US", "JP", "ID", "MY", "VN", "XX"];
 function countryName(cc) {
-  if (cc === "XX") return { ko: "기타", en: "Other", th: "อื่น ๆ", ja: "その他" }[lang];
+  if (cc === "XX") return { ko: "기타", en: "Other", th: "อื่น ๆ", ja: "その他", zh: "其他", fil: "Iba pa", es: "Otro" }[lang];
   try { return new Intl.DisplayNames([lang], { type: "region" }).of(cc); } catch (e) { return cc; }
 }
 function guessCountry() {
   const m = /-([A-Z]{2})$/i.exec(navigator.language || ""); const cc = m ? m[1].toUpperCase() : "";
-  return COUNTRIES.includes(cc) ? cc : ({ ko: "KR", th: "TH", ja: "JP" }[(navigator.language || "").slice(0, 2)] || "XX");
+  return COUNTRIES.includes(cc) ? cc : ({ ko: "KR", th: "TH", ja: "JP", fil: "PH", tl: "PH" }[(navigator.language || "").slice(0, 2)] || "XX");
 }
 
 /* ---------- 전 세계 하트 보내기 ---------- */
@@ -535,7 +535,7 @@ let events = null;
 const KINDS = ["show", "tv", "live", "release", "etc"];
 const KIND_ICON = { show: "🎤", tv: "📺", live: "🔴", release: "💿", etc: "✨" };
 function fmtWhen(ms, tz) {
-  const loc = { ko: "ko-KR", ja: "ja-JP", th: "th-TH" }[lang] || "en-US";
+  const loc = { ko: "ko-KR", ja: "ja-JP", th: "th-TH", zh: "zh-CN", fil: "fil-PH", es: "es-ES" }[lang] || "en-US";
   return new Intl.DateTimeFormat(loc, { timeZone: tz, month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }).format(ms);
 }
 function renderEvents() {
@@ -799,6 +799,9 @@ const X = {
   ko: { tick: "전 세계 팬들의 응원", bday: "🎂 오늘은 현모의 생일이에요! 생일 축하해요!", debut: n => `🎉 오늘은 현모 데뷔 ${n}주년! 축하해요!` },
   en: { tick: "Cheers from around the world", bday: "🎂 It's Hyunmo's birthday today! Happy birthday!", debut: n => `🎉 Today is Hyunmo's ${n}-year debut anniversary!` },
   th: { tick: "กำลังใจจากแฟน ๆ ทั่วโลก", bday: "🎂 วันนี้วันเกิดฮยอนโม! สุขสันต์วันเกิดนะ!", debut: n => `🎉 วันนี้ครบรอบ ${n} ปีการเดบิวต์ของฮยอนโม!` },
+  zh: { tick: "来自世界各地粉丝的应援", bday: "🎂 今天是 Hyunmo 的生日！生日快乐！", debut: n => `🎉 今天是 Hyunmo 出道 ${n} 周年！恭喜！` },
+  fil: { tick: "Mga cheer mula sa buong mundo", bday: "🎂 Kaarawan ni Hyunmo ngayon! Happy birthday!", debut: n => `🎉 Ngayon ang ika-${n} taon ng debut ni Hyunmo!` },
+  es: { tick: "Ánimos de fans de todo el mundo", bday: "🎂 ¡Hoy es el cumpleaños de Hyunmo! ¡Feliz cumpleaños!", debut: n => `🎉 ¡Hoy se cumplen ${n} años del debut de Hyunmo!` },
   ja: { tick: "世界中のファンからの応援", bday: "🎂 今日はヒョンモの誕生日！お誕生日おめでとう！", debut: n => `🎉 今日はヒョンモのデビュー${n}周年！おめでとう！` }
 };
 const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
