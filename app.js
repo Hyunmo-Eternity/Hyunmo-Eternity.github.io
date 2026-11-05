@@ -95,6 +95,7 @@ $("playbtn").addEventListener("click", () => { if (!audio.src) playAt(0); else i
 $("nextbtn").addEventListener("click", () => playAt(track + 1));
 audio.addEventListener("ended", () => { if (PLAYLIST.length > 1) playAt(track + 1); });
 ["play", "pause", "loadstart"].forEach(ev => audio.addEventListener(ev, renderPlayer));
+audio.addEventListener("play", () => { if (typeof onlyThis === "function") onlyThis(null); });
 
 /* ---------- guestbook ---------- */
 function renderNotes() {
@@ -138,7 +139,7 @@ function parseVideo(u) {
     else if (seg[0] === "live" || seg[0] === "embed") id = seg[1];
     else id = x.searchParams.get("v");
     if (id && !/^[\w-]{6,20}$/.test(id)) id = null;
-    return { p: "youtube", who: "YouTube", tall, embed: id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null };
+    return { p: "youtube", who: "YouTube", tall, embed: id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}` : null };
   }
   if (/(^|\.)instagram\.com$/.test(h)) {
     const m = /\/(p|reel|reels|tv)\/([\w-]+)/.exec(x.pathname);
@@ -175,7 +176,8 @@ function renderClips() {
     if (v.embed) {
       const f = document.createElement("iframe");
       f.className = "embed" + (v.tall ? "" : " landscape") + (v.insta ? " insta" : ""); f.loading = "lazy"; f.title = c.song;
-      f.src = v.embed;
+      f.src = v.embed; f.dataset.p = v.p;
+      if (v.p === "youtube") f.addEventListener("load", () => { try { f.contentWindow.postMessage(JSON.stringify({ event: "listening", id: c.id }), "*"); } catch (e) {} });
       f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay";
       f.referrerPolicy = "strict-origin-when-cross-origin";
       card.appendChild(f);
@@ -199,6 +201,41 @@ function renderClips() {
     info.appendChild(m); card.appendChild(info); box.appendChild(card);
   }
 }
+
+/* ---------- 영상은 한 번에 하나만 재생 ---------- */
+function stopFrame(f) {
+  try {
+    if (f.dataset.p === "tiktok") f.contentWindow.postMessage({ type: "pause", "x-tiktok-player": true }, "*");
+    else if (f.dataset.p === "youtube") f.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+    else if (f.dataset.p === "instagram") { const src = f.src; f.src = "about:blank"; f.src = src; } // 인스타그램은 멈춤 명령이 없어서 다시 불러와요
+  } catch (e) {}
+}
+function onlyThis(playing) {
+  document.querySelectorAll("iframe.embed").forEach(f => { if (f !== playing && f.dataset.active === "1") { stopFrame(f); f.dataset.active = ""; } });
+  if (playing) playing.dataset.active = "1";
+  if (playing && typeof audio !== "undefined" && !audio.paused) audio.pause();
+}
+// 영상 쪽에서 "재생 시작" 신호를 보내면 다른 영상 멈추기
+addEventListener("message", e => {
+  const f = [...document.querySelectorAll("iframe.embed")].find(x => x.contentWindow === e.source);
+  if (!f) return;
+  let d = e.data;
+  if (typeof d === "string") { try { d = JSON.parse(d); } catch (err) { return; } }
+  if (!d) return;
+  const playing = (d["x-tiktok-player"] && d.type === "onStateChange" && d.value === 1)
+    || (d.event === "onStateChange" && d.info === 1)
+    || (d.event === "infoDelivery" && d.info && d.info.playerState === 1);
+  if (playing) onlyThis(f);
+});
+// 신호를 안 보내는 영상(인스타그램 등)은 영상 안을 누르는 순간을 잡아요
+addEventListener("blur", () => setTimeout(() => {
+  const a = document.activeElement;
+  if (a && a.tagName === "IFRAME" && a.classList.contains("embed")) onlyThis(a);
+}, 0));
+// 영상을 누른 뒤 다른 영상을 또 누를 수 있게 포커스를 되돌려요
+document.addEventListener("pointerover", e => {
+  if (e.target.tagName === "IFRAME" && document.activeElement && document.activeElement.tagName === "IFRAME" && document.activeElement !== e.target) window.focus();
+});
 
 /* ---------- 팬 영상 추천 → 관리자 승인 ---------- */
 let pending = [], unsubPending = null;
@@ -404,6 +441,31 @@ function renderCelebrate() {
   if (!celebrated) { celebrated = true; setTimeout(confetti, 400); }
 }
 celebrate.addEventListener("click", confetti);
+
+/* ---------- 메뉴별 페이지 나누기 ---------- */
+const PAGES = ["profile", "music", "clips", "cheers", "links"];
+const hero = document.querySelector(".hero");
+const mini = document.createElement("div"); mini.className = "minititle";
+mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
+hero.prepend(mini);
+let firstRoute = true;
+function route() {
+  const h = location.hash.slice(1);
+  const page = PAGES.includes(h) ? h : "profile";
+  PAGES.forEach(id => { const sec = document.getElementById(id); if (sec) sec.hidden = id !== page; });
+  hero.classList.toggle("compact", page !== "profile");
+  document.querySelectorAll(".bar nav a").forEach(a => {
+    if (a.getAttribute("href") === "#" + page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
+  const sec = document.getElementById(page);
+  if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
+  window.scrollTo(0, 0);
+  firstRoute = false;
+}
+addEventListener("hashchange", route);
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+route();
+addEventListener("load", () => window.scrollTo(0, 0));
 
 ring();
 $("liveurl").value = DEFAULT_LIVE_URL;
