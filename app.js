@@ -4,6 +4,7 @@ import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDo
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
 import { PLAYLIST } from "./music/playlist.js";
+import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
 
 const $ = id => document.getElementById(id);
 const configured = !String(firebaseConfig.apiKey).includes("붙여넣기");
@@ -466,6 +467,45 @@ addEventListener("hashchange", route);
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 route();
 addEventListener("load", () => window.scrollTo(0, 0));
+
+/* ---------- 첫 화면 사진 슬라이드 + 배경 함께 바뀌기 ---------- */
+const ringEl = document.querySelector(".ring");
+const bgLayer = document.createElement("div"); bgLayer.className = "photobg"; bgLayer.setAttribute("aria-hidden", "true");
+document.body.prepend(bgLayer);
+let slide = 0, slideTimer = null;
+const slideImgs = [], bgImgs = [];
+if (PHOTOS.length) {
+  ringEl.classList.add("has-photo");
+  const holder = document.createElement("div"); holder.className = "slides";
+  ringEl.prepend(holder);
+  const dots = document.createElement("div"); dots.className = "dots";
+  ringEl.after(dots);
+  PHOTOS.forEach((src, i) => {
+    const im = document.createElement("img"); im.src = src; im.alt = i ? "" : "현모 Hyunmo"; im.decoding = "async";
+    if (i) im.loading = "lazy";
+    holder.appendChild(im); slideImgs.push(im);
+    const bg = document.createElement("div"); bg.className = "bgimg"; bg.style.backgroundImage = `url("${src}")`;
+    bgLayer.appendChild(bg); bgImgs.push(bg);
+    if (PHOTOS.length > 1) {
+      const d = document.createElement("button"); d.type = "button"; d.setAttribute("aria-label", `${i + 1} / ${PHOTOS.length}`);
+      d.onclick = () => { showSlide(i); restartSlides(); };
+      dots.appendChild(d);
+    }
+  });
+  function showSlide(i) {
+    slide = (i + PHOTOS.length) % PHOTOS.length;
+    slideImgs.forEach((im, k) => im.classList.toggle("on", k === slide));
+    bgImgs.forEach((b, k) => b.classList.toggle("on", k === slide));
+    [...dots.children].forEach((d, k) => d.setAttribute("aria-current", k === slide ? "true" : "false"));
+    const next = slideImgs[(slide + 1) % PHOTOS.length]; if (next) next.loading = "eager";
+  }
+  function restartSlides() {
+    clearInterval(slideTimer);
+    if (PHOTOS.length > 1) slideTimer = setInterval(() => { if (!document.hidden) showSlide(slide + 1); }, Math.max(2, PHOTO_SECONDS) * 1000);
+  }
+  ringEl.addEventListener("click", () => { showSlide(slide + 1); restartSlides(); });
+  showSlide(0); restartSlides();
+}
 
 ring();
 $("liveurl").value = DEFAULT_LIVE_URL;

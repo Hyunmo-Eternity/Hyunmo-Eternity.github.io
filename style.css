@@ -266,3 +266,31 @@ section{scroll-margin-top:80px}
   section.enter{animation:pagein .35s ease-out}
   @keyframes pagein{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
+
+/* --- 첫 화면 사진 슬라이드 --- */
+.ring.has-photo{width:min(320px,80vw);cursor:pointer}
+.ring .slides{position:absolute;inset:13%;border-radius:50%;overflow:hidden;background:var(--petal-soft);
+  box-shadow:0 10px 30px color-mix(in srgb,var(--petal) 35%,transparent),inset 0 0 0 4px var(--paper)}
+.ring .slides img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+.ring .slides img.on{opacity:1}
+.ring.has-photo > svg{z-index:1}
+.ring.has-photo > div:not(.slides){position:absolute;left:0;right:0;bottom:-6px;z-index:2;text-align:center;pointer-events:none}
+.ring.has-photo .name{display:inline-block;font-size:26px;background:var(--paper);padding:4px 18px;border-radius:999px;
+  box-shadow:0 4px 14px color-mix(in srgb,var(--petal) 25%,transparent)}
+.ring.has-photo .rom{display:none}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.dots button{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:color-mix(in srgb,var(--petal) 30%,transparent);cursor:pointer;transition:width .3s}
+.dots button[aria-current="true"]{width:22px;border-radius:999px;background:var(--petal)}
+.hero.compact .dots{display:none}
+@media (prefers-reduced-motion:no-preference){
+  .ring .slides img.on{animation:kb 7s ease-out both}
+  @keyframes kb{from{transform:scale(1.08)}to{transform:scale(1)}}
+}
+/* 배경: 지금 사진을 크게 흐리게 깔고 파스텔을 덮어요 */
+.photobg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.photobg .bgimg{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(40px) saturate(1.2);
+  opacity:0;transition:opacity 1.6s ease;transform:translateZ(0)}
+.photobg .bgimg.on{opacity:.55}
+.photobg::after{content:"";position:absolute;inset:0;background:linear-gradient(165deg,color-mix(in srgb,var(--sky1) 55%,transparent),color-mix(in srgb,var(--sky2) 45%,transparent),color-mix(in srgb,var(--sky3) 55%,transparent))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .photobg .bgimg.on{opacity:.35}}
+:root[data-theme="dark"] .photobg .bgimg.on{opacity:.35}
