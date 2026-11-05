@@ -399,16 +399,30 @@ function shrink(im, max, square, budget) {
   for (let q = 0.85; q >= 0.4; q -= 0.08) { const d = c.toDataURL("image/jpeg", q); if (d.length <= budget) return d; }
   return c.toDataURL("image/jpeg", 0.35);
 }
+// 아이폰 사진(HEIC)은 PC 브라우저가 못 읽어서, 필요할 때만 변환 도구를 불러와 jpg로 바꿔요
+let heicLib = null;
+function heicToJpeg(file) {
+  if (!heicLib) heicLib = new Promise((ok, fail) => {
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+    sc.onload = () => ok(window.heic2any); sc.onerror = () => { heicLib = null; fail(new Error("heic2any load failed")); };
+    document.head.appendChild(sc);
+  });
+  return heicLib.then(conv => conv({ blob: file, toType: "image/jpeg", quality: 0.9 })).then(r => Array.isArray(r) ? r[0] : r);
+}
+function loadImageAny(file) { return loadImage(file); }
 let upData = null;
 $("up_file").addEventListener("change", async () => {
   const st = $("up_status"), f = $("up_file").files[0]; upData = null; $("up_preview").hidden = true;
   if (!f) return;
   st.textContent = T[lang].up_busy;
   try {
-    const im = await loadImage(f);
+    let src = f;
+    if (/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name)) src = await heicToJpeg(f);
+    const im = await loadImage(src);
     upData = { img: shrink(im, 1200, false, 420000), thumb: shrink(im, 360, true, 60000) };
     $("up_img").src = upData.thumb; $("up_preview").hidden = false; st.textContent = "";
-  } catch (e) { st.textContent = T[lang].up_bad; $("up_file").value = ""; }
+  } catch (e) { console.warn("[사진 읽기 실패]", f.name, f.type, f.size, e); st.textContent = T[lang].up_bad + ` (${f.name})`; }
 });
 $("upform").addEventListener("submit", async e => {
   e.preventDefault();
