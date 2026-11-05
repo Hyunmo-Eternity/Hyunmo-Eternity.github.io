@@ -6,6 +6,7 @@ import { T, DISC } from "./i18n.js";
 import { PLAYLIST } from "./music/playlist.js";
 import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
 import { QUIZ } from "./quiz.js";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
 
 const $ = id => document.getElementById(id);
 const configured = !String(firebaseConfig.apiKey).includes("붙여넣기");
@@ -526,6 +527,7 @@ function renderEvents() {
     body.append(ti, when);
     if (myTz !== "Asia/Seoul") { const k = document.createElement("small"); k.textContent = `${t.kst}: ${fmtWhen(ev.when, "Asia/Seoul")}`; body.appendChild(k); }
     if (ev.place) { const pl = document.createElement("small"); pl.textContent = "📍 " + ev.place; body.appendChild(pl); }
+    if (ev.byNick) { const bn = document.createElement("small"); bn.textContent = `${t.sg_by} ${FLAG[ev.byFrom] || "🌏"} ${ev.byNick}`; body.appendChild(bn); }
     li.append(ic, body);
     if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "events", ev.id)).catch(() => {}); li.appendChild(x); }
     list.appendChild(li);
@@ -563,6 +565,80 @@ $("evform").addEventListener("submit", async e => {
     await addDoc(collection(db, "events"), { when, kind: $("ev_kind").value, title: $("ev_title").value.trim().slice(0, 80), place: $("ev_place").value.trim().slice(0, 80), link, at: serverTimestamp() });
     st.textContent = t.ev_added; $("ev_title").value = ""; $("ev_place").value = ""; $("ev_link").value = "";
   } catch (err) { st.textContent = t.fail; }
+});
+
+/* ---------- 팬 일정 제보 → 관리자 승인 ---------- */
+let evPending = [], unsubEvPending = null;
+$("es_from").innerHTML = $("from").innerHTML;
+function renderEvSuggest() {
+  const t = T[lang];
+  const ks = $("es_kind"), kv = ks.value; ks.textContent = "";
+  KINDS.forEach(k => { const o = document.createElement("option"); o.value = k; o.textContent = `${KIND_ICON[k]} ${t["k_" + k]}`; ks.appendChild(o); });
+  if (kv) ks.value = kv;
+  const tz = $("es_tz"), tv = tz.value || "local"; tz.textContent = "";
+  [["local", t.tz_local], ["kst", t.tz_kst]].forEach(([v, l]) => { const o = document.createElement("option"); o.value = v; o.textContent = l; tz.appendChild(o); });
+  tz.value = tv;
+  if (mine && !$("es_nick").value) { $("es_nick").value = mine.nick || ""; $("es_from").value = mine.from || "XX"; }
+  $("evsug").hidden = isAdmin;
+  const box = $("evpend"); box.textContent = ""; box.hidden = !isAdmin || !evPending.length;
+  if (box.hidden) return;
+  const h = document.createElement("h3"); h.textContent = `${t.es_pending} (${evPending.length})`; box.appendChild(h);
+  const myTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  for (const g of evPending) {
+    const row = document.createElement("div"); row.className = "prow";
+    const info = document.createElement("div"); info.className = "pinfo";
+    const ti = document.createElement(g.link ? "a" : "b"); ti.textContent = `${KIND_ICON[g.kind] || "✨"} ${g.title}${g.link ? " ↗" : ""}`;
+    if (g.link) { ti.href = g.link; ti.target = "_blank"; ti.rel = "noopener"; }
+    const w = document.createElement("small"); w.textContent = `${fmtWhen(g.when, myTz)}${g.place ? " · 📍 " + g.place : ""}`;
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[g.from] || "🌏"} ${g.nick}`;
+    info.append(ti, w, by);
+    const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
+    const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
+    ok.onclick = async () => {
+      ok.disabled = no.disabled = true;
+      try {
+        await addDoc(collection(db, "events"), { when: g.when, kind: g.kind, title: g.title, place: g.place || "", link: g.link || "", byNick: g.nick, byFrom: g.from, at: serverTimestamp() });
+        await deleteDoc(doc(db, "event_pending", g.id));
+      } catch (e) { ok.disabled = no.disabled = false; }
+    };
+    no.onclick = () => { no.disabled = true; deleteDoc(doc(db, "event_pending", g.id)).catch(() => { no.disabled = false; }); };
+    row.append(info, ok, no); box.appendChild(row);
+  }
+}
+function watchEvPending() {
+  if (unsubEvPending) { unsubEvPending(); unsubEvPending = null; }
+  evPending = [];
+  if (!isAdmin) return renderEvSuggest();
+  unsubEvPending = onSnapshot(query(collection(db, "event_pending"), orderBy("at", "asc"), limit(50)), snap => {
+    evPending = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderEvSuggest();
+  }, () => {});
+}
+$("esform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("es_status"), btn = $("es_send"), v = $("es_when").value;
+  if (!v || !user || !db) return;
+  const when = $("es_tz").value === "kst" ? Date.parse(v + ":00+09:00") : new Date(v).getTime();
+  const link = $("es_link").value.trim();
+  if (link && !/^https:\/\//.test(link)) { st.textContent = t.badurl; return; }
+  const title = $("es_title").value.trim().slice(0, 80), nick = $("es_nick").value.trim().slice(0, 24);
+  if (!title || !nick || !isFinite(when)) return;
+  btn.disabled = true; st.textContent = "";
+  try {
+    await addDoc(collection(db, "event_pending"), { when, kind: $("es_kind").value, title, place: $("es_place").value.trim().slice(0, 80), link, nick, from: $("es_from").value, by: user.uid, at: serverTimestamp() });
+    st.textContent = t.es_thanks; $("es_title").value = ""; $("es_place").value = ""; $("es_link").value = ""; $("es_when").value = "";
+  } catch (err) { st.textContent = t.fail; }
+  btn.disabled = false;
+});
+
+/* ---------- KiT 앨범 구매 안내 ---------- */
+$("buygo").href = PRODUCT_URL || SHOP_URL;
+$("buyword").textContent = SEARCH_WORD;
+if (PRODUCT_URL) document.querySelectorAll("#buy .buysteps li").forEach((li, i) => { if (i > 0) li.hidden = true; });
+$("copyword").addEventListener("click", async () => {
+  const lbl = $("copyword").querySelector("[data-i]");
+  try { await navigator.clipboard.writeText(SEARCH_WORD); lbl.textContent = T[lang].buy_copied; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("buyword")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+  setTimeout(() => { lbl.textContent = T[lang].buy_copy; }, 1800);
 });
 
 /* ---------- 최애곡 투표 ---------- */
@@ -672,7 +748,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -900,7 +976,7 @@ if (!configured) {
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     $("form").hidden = false;
-    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); renderEvents(); loadVotes();
+    syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); watchEvPending(); renderEvents(); loadVotes();
   });
 
   $("adminbtn").addEventListener("click", async () => {

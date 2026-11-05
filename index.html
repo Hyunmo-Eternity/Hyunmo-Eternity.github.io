@@ -45,6 +45,7 @@
       <div class="count"><small data-i="since">데뷔한 지</small><b id="dplus">D+0</b></div>
       <div class="count hi"><small data-i="bday">생일까지</small><b id="dbday">D-0</b></div>
     </div>
+    <a class="buypill" href="#music"><span aria-hidden="true">💿</span> <span data-i="buy_pill">KiT 앨범 구매하기</span> →</a>
     <div class="hearts" id="hearts">
       <div class="hrow">
         <button type="button" class="heartbtn" id="heartbtn"><span class="hb-ico" aria-hidden="true">💗</span><span data-i="h_send">현모에게 하트 보내기</span></button>
@@ -104,12 +105,49 @@
       </div>
       <div class="actions"><button class="go" type="submit" id="ev_add" data-i="ev_add">일정 추가</button><span class="status" id="ev_status" aria-live="polite"></span></div>
     </form>
+    <div class="pending" id="evpend" hidden></div>
     <ol class="events" id="events"></ol>
+    <details class="suggest" id="evsug">
+      <summary data-i="es_open">📢 일정 제보하기</summary>
+      <form class="sgf" id="esform">
+        <p class="hint" data-i="es_lede"></p>
+        <div class="row">
+          <label><span data-i="es_when">날짜와 시간</span><input id="es_when" type="datetime-local" required></label>
+          <label><span data-i="es_tz">시간 기준</span><select id="es_tz"></select></label>
+        </div>
+        <div class="row">
+          <label><span data-i="ev_kind">종류</span><select id="es_kind"></select></label>
+          <label><span data-i="ev_title">제목</span><input id="es_title" maxlength="80" required></label>
+        </div>
+        <div class="row">
+          <label><span data-i="ev_place">장소</span><input id="es_place" maxlength="80"></label>
+          <label><span data-i="es_link">출처 링크 (공지·SNS)</span><input id="es_link" type="url" inputmode="url"></label>
+        </div>
+        <div class="row">
+          <label><span data-i="l_nick">닉네임</span><input id="es_nick" maxlength="24" required autocomplete="nickname"></label>
+          <label><span data-i="l_from">어디에서</span><select id="es_from"></select></label>
+        </div>
+        <div class="actions"><button class="go" type="submit" id="es_send" data-i="es_send">제보 보내기</button><span class="status" id="es_status" aria-live="polite"></span></div>
+      </form>
+    </details>
   </section>
 
   <section id="music">
     <h2 data-i="nav_music">음악</h2>
     <p class="lede" data-i="music_lede"></p>
+    <div class="buy" id="buy">
+      <div class="buyart" aria-hidden="true"><span>KiT</span></div>
+      <div class="buybody">
+        <h3 data-i="buy_title">💿 현모 KiT 앨범 구매하기</h3>
+        <p data-i="buy_lede"></p>
+        <ol class="buysteps">
+          <li data-i="buy_s1"></li>
+          <li><span data-i="buy_s2"></span> <button type="button" class="copyword" id="copyword"><b id="buyword">hyunmo</b> <span data-i="buy_copy">복사</span></button></li>
+          <li data-i="buy_s3"></li>
+        </ol>
+        <a class="go buygo" id="buygo" href="https://www.kitbetter.com/kr" target="_blank" rel="noopener"><span data-i="buy_go">KiTbetter에서 구매하기</span> ↗</a>
+      </div>
+    </div>
     <div class="vote" id="vote">
       <h3 data-i="v_title">🏆 최애곡 투표</h3>
       <p class="hint" data-i="v_lede"></p>
