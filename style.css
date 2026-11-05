@@ -445,3 +445,4 @@ a.buygo:hover{filter:brightness(1.08)}
 .langs::-webkit-scrollbar{display:none}
 .langs button{flex:none;white-space:nowrap}
 @media (max-width:480px){.langs button{padding:4px 9px;font-size:12.5px}}
+.rulesnote{margin:-6px 0 14px;background:var(--paper);border-radius:12px;padding:8px 12px;font-size:13px}

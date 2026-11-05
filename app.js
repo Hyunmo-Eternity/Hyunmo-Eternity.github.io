@@ -8,6 +8,7 @@ const PLAYLIST = PL.PLAYLIST || [];
 const AUTO_START = PL.AUTO_START !== false;
 import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
 import { QUIZ } from "./quiz.js";
+import { checkText } from "./filter.js";
 import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
 
 const $ = id => document.getElementById(id);
@@ -140,7 +141,7 @@ function renderNotes() {
   if (!notes) return msg(notesState === "slow" ? "slow" : "loading");
   if (!notes.length) return msg("empty");
   const fmt = new Intl.DateTimeFormat({ ko:"ko-KR", ja:"ja-JP", th:"th-TH", zh:"zh-CN", fil:"fil-PH", es:"es-ES" }[lang] || "en-US", { year:"numeric", month:"short", day:"numeric" });
-  for (const n of notes) {
+  for (const n of notes.filter(n => !checkText(n.nick, n.msg))) {
     const a = document.createElement("article"); a.className = "note";
     const who = document.createElement("div"); who.className = "who";
     const b = document.createElement("b"); b.textContent = `${FLAG[n.from] || "🌏"} ${n.nick}`;
@@ -336,6 +337,7 @@ $("sgform").addEventListener("submit", async e => {
   const url = $("sg_url").value.trim(), song = $("sg_song").value.trim().slice(0, 60), nick = $("sg_nick").value.trim().slice(0, 24), from = $("sg_from").value;
   if (!parseVideo(url)) { st.textContent = t.badurl; return; }
   if (!song || !nick || !user || !db) return;
+  if (checkText(song, nick)) { st.textContent = t.blocked; return; }
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "suggestions"), { url, song, nick, from, by: user.uid, at: serverTimestamp() });
@@ -465,6 +467,7 @@ $("upform").addEventListener("submit", async e => {
   const nick = $("up_nick").value.trim().slice(0, 24), cap = $("up_cap").value.trim().slice(0, 80), from = $("up_from").value;
   if (!upData) { st.textContent = t.up_bad; return; }
   if (!nick || !user || !db) return;
+  if (checkText(nick, cap)) { st.textContent = t.blocked; return; }
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "photo_pending"), { img: upData.img, thumb: upData.thumb, cap, nick, from, by: user.uid, at: serverTimestamp() });
@@ -655,6 +658,7 @@ $("esform").addEventListener("submit", async e => {
   if (link && !/^https:\/\//.test(link)) { st.textContent = t.badurl; return; }
   const title = $("es_title").value.trim().slice(0, 80), nick = $("es_nick").value.trim().slice(0, 24);
   if (!title || !nick || !isFinite(when)) return;
+  if (checkText(title, nick, $("es_place").value)) { st.textContent = t.blocked; return; }
   btn.disabled = true; st.textContent = "";
   try {
     await addDoc(collection(db, "event_pending"), { when, kind: $("es_kind").value, title, place: $("es_place").value.trim().slice(0, 80), link, nick, from: $("es_from").value, by: user.uid, at: serverTimestamp() });
@@ -813,7 +817,7 @@ ticker.innerHTML = '<span class="tk-label"></span><div class="tk-view"><div clas
 document.querySelector(".bar").after(ticker);
 function renderTicker() {
   ticker.querySelector(".tk-label").textContent = "💌 " + X[lang].tick;
-  const list = (notes || []).slice(0, 20);
+  const list = (notes || []).filter(n => !checkText(n.nick, n.msg)).slice(0, 20);
   ticker.hidden = !list.length;
   if (!list.length) return;
   const track = ticker.querySelector(".tk-track"); track.textContent = "";
@@ -1026,6 +1030,7 @@ if (!configured) {
     if (!user) return;
     const nick = $("nick").value.trim().slice(0, 24), msg = $("msg").value.trim().slice(0, 400), from = $("from").value;
     if (!nick || !msg) return;
+    if (checkText(nick, msg)) { $("status").textContent = T[lang].blocked; return; }
     const btn = $("send"), st = $("status"); btn.disabled = true; st.textContent = "";
     try { await setDoc(doc(db, "guestbook", user.uid), { nick, msg, from, at: serverTimestamp() }); st.textContent = T[lang].posted; }
     catch (err) { st.textContent = T[lang].fail; }
