@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
-import { T, DISC } from "./i18n.js";
-import * as PL from "./music/playlist.js";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611070422";
+import { T, DISC } from "./i18n.js?v=202611070422";
+import * as PL from "./music/playlist.js?v=202611070422";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,13 +11,14 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js";
+import * as PH from "./photos.js?v=202611070422";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js";
-import { HOPE } from "./hope.js";
-import { checkText } from "./filter.js";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
-import * as TH from "./theme.js";
+import { QUIZ } from "./quiz.js?v=202611070422";
+import { HOPE } from "./hope.js?v=202611070422";
+import { checkText } from "./filter.js?v=202611070422";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611070422";
+import * as TH from "./theme.js?v=202611070422";
+import * as GM from "./games.js?v=202611070422";
 // 크리스마스 테마 켜기 (theme.js 에서 바꿔요)
 const XMAS = (() => { const t = TH.THEME || "flower", m = new Date(Date.now() + 9 * 3600e3).getUTCMonth() + 1; return t === "christmas" || (t === "auto" && m === 12); })();
 if (XMAS) document.documentElement.classList.add("xmas");
@@ -1169,7 +1170,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -1560,8 +1561,32 @@ function renderCelebrate() {
 }
 celebrate.addEventListener("click", () => { const c = celebrateKind(); if (c && c.k === "ym") pawBurst(innerWidth / 2, innerHeight * .3, 60); else confetti(); });
 
+/* ---------- 게임 ---------- */
+let gameBoardCb = null, gameBoardOn = false;
+function startGamesPage() {
+  GM.startGames({
+    getLang: () => lang, getCountry: () => myCountry, flagOf, countryName, poodleSVG, xmas: XMAS,
+    photos: [...PH.PHOTOS, ...(PH.YANGMAL || []), ...(PH.SNOWMAN_PHOTOS || [])],
+    playlist: PL.PLAYLIST,
+    pauseMusic: () => { if (!audio.paused) audio.pause(); },
+    celebrate: () => confetti(),
+    vibrate: () => { try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} },
+    saveScore: async n => {
+      if (!db || !user) return false;
+      try { await setDoc(doc(db, "game_scores", myCountry), { n: increment(Math.min(500, Math.max(1, Math.floor(n)))) }, { merge: true }); return true; } catch (e) { return false; }
+    },
+    watchBoard: cb => { gameBoardCb = cb; watchGameBoard(); },
+  });
+}
+function watchGameBoard() {
+  if (gameBoardOn || !db || !gameBoardCb) return; gameBoardOn = true;
+  onSnapshot(collection(db, "game_scores"), snap => {
+    const b = {}; snap.docs.forEach(d => { const n = d.data().n; if (typeof n === "number") b[d.id] = n; }); gameBoardCb(b);
+  }, () => { gameBoardOn = false; });
+}
+
 /* ---------- 메뉴별 페이지 나누기 ---------- */
-const PAGES = ["profile", "schedule", "request", "music", "clips", "photos", "dog", "cheers", "links", "manage"];
+const PAGES = ["profile", "schedule", "request", "music", "clips", "photos", "dog", "games", "cheers", "links", "manage"];
 const hero = document.querySelector(".hero");
 const mini = document.createElement("div"); mini.className = "minititle";
 mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
@@ -1579,6 +1604,7 @@ function route() {
   if (page === "music") setTimeout(loadVotes, 0);
   if (page === "request") setTimeout(() => loadRequests(), 0);
   if (page === "dog") setTimeout(startDog, 0);
+  if (page === "games") setTimeout(startGamesPage, 0); else GM.stopGames();
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
   window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); if (firstRoute) setTimeout(() => window.scrollTo(0, 0), 300);
@@ -1673,7 +1699,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
   }, () => { clips = []; renderClips(); });
-  watchHearts(); watchEvents(); countVisit();
+  watchHearts(); watchEvents(); countVisit(); watchGameBoard();
   onSnapshot(doc(db, "status", "live"), d => { live = d.exists() ? d.data() : null; renderLive(); }, () => {});
 
   // 방문자는 보이지 않게 익명 로그인 → 로그인 화면 없이 응원 메시지를 쓸 수 있어요

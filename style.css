@@ -755,3 +755,47 @@ html,body{overflow-x:clip}
 .xscene{height:230px}
 .xbubble{bottom:150px!important;margin-left:68px!important;white-space:normal!important;max-width:130px;text-align:center;word-break:keep-all}
 .smpop{bottom:66px}
+
+/* ---------- 게임 ---------- */
+#games{background:linear-gradient(180deg,var(--t-sky),var(--t-lav))}
+.gintro{margin:0 0 12px;color:var(--muted)}
+.gtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.gtabs button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+.gtabs button[aria-pressed="true"]{background:var(--leaf);color:var(--paper);border-color:var(--leaf)}
+.gpanel{display:grid;gap:10px;justify-items:center;text-align:center}
+.ghelp{margin:0;font-size:14px;color:var(--muted);max-width:34em}
+.ghud{display:flex;gap:6px 14px;flex-wrap:wrap;justify-content:center;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.gbest{color:var(--muted);font-weight:400}
+.gstage{position:relative;width:100%;border-radius:22px;overflow:hidden;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--t-sky) 70%,var(--paper)),var(--t-peach));box-shadow:inset 0 0 0 1px var(--line)}
+.gstage canvas{display:block;width:100%;touch-action:none;cursor:pointer}
+.gplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:17px;padding:12px 30px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.gover{position:absolute;left:12px;right:12px;top:22%;display:grid;gap:4px;justify-items:center;background:color-mix(in srgb,var(--paper) 88%,transparent);border-radius:16px;padding:12px}
+.gover strong{font-family:var(--f-display);font-size:22px}
+.gover small{color:var(--muted);font-size:13px}
+.gboard{width:100%;margin-top:6px;text-align:left}
+.gboard h3{font-size:15px;margin:4px 0 8px}
+.gempty{color:var(--muted);font-size:13px;display:block!important}
+.gres{margin:0;font-weight:700;min-height:1.2em}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;max-width:440px}
+.mcard{aspect-ratio:1;border:0;padding:0;background:none;cursor:pointer;position:relative;perspective:600px;font:inherit}
+.mcard > span{position:absolute;inset:0;border-radius:12px;backface-visibility:hidden;transition:transform .4s;display:grid;place-items:center;overflow:hidden}
+.mback{background:repeating-linear-gradient(45deg,var(--petal) 0 8px,color-mix(in srgb,var(--petal) 80%,#fff) 8px 16px);font-size:22px;box-shadow:inset 0 0 0 3px var(--paper)}
+.mfront{transform:rotateY(180deg);background:var(--paper)}
+.mfront img{width:100%;height:100%;object-fit:cover}
+.mcard.up .mback{transform:rotateY(180deg)}
+.mcard.up .mfront{transform:rotateY(360deg)}
+.mcard.got .mfront{box-shadow:0 0 0 3px var(--leaf);animation:mgot .5s}
+@keyframes mgot{50%{transform:rotateY(360deg) scale(1.08)}}
+.gwave{display:flex;gap:5px;align-items:flex-end;height:44px;justify-content:center;margin:4px 0}
+.gwave i{width:7px;height:10px;border-radius:4px;background:var(--petal);opacity:.5}
+.gwave.on i{animation:gw .9s ease-in-out infinite;opacity:1}
+.gwave.on i:nth-child(2n){animation-delay:.15s}.gwave.on i:nth-child(3n){animation-delay:.3s}
+@keyframes gw{50%{height:40px}}
+.greplay{font:inherit;background:none;border:0;color:var(--leaf);text-decoration:underline;cursor:pointer}
+.gopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;max-width:440px}
+.gopt{font:inherit;font-size:14px;padding:12px 8px;border-radius:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;word-break:keep-all}
+.gopt.ok{background:var(--leaf);color:var(--paper);border-color:var(--leaf)}
+.gopt.no{background:var(--petal-soft);border-color:var(--petal)}
+:root.xmas #games{background:linear-gradient(180deg,var(--t-sky),var(--t-mint))}
+@media (prefers-reduced-motion:reduce){.mcard > span{transition:none}.gwave.on i{animation:none}}

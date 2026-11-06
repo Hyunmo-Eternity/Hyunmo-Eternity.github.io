@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Noto+Sans+Thai:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=202611070422">
 </head>
 <body>
 <div class="wrap">
@@ -42,6 +42,7 @@
       <a href="#clips" data-i="nav_clips">영상</a>
       <a href="#photos" data-i="nav_photos">사진</a>
       <a href="#dog" data-i="nav_dog">양말이</a>
+      <a href="#games" data-i="nav_games">게임</a>
       <a href="#cheers" data-i="nav_cheers">응원</a>
       <a href="#links" data-i="nav_links">링크</a>
     </nav>
@@ -298,6 +299,31 @@
     <div class="letters" id="letters"><div class="lthead">To. 양말이 🐾 <small>from fans around the world</small></div><div class="ltgrid" id="ltgrid"></div></div>
   </section>
 
+  <section id="games" hidden>
+    <h2 id="g_title">게임</h2>
+    <p class="gintro" id="g_intro"></p>
+    <div class="gtabs" role="group">
+      <button type="button" data-g="catch"></button><button type="button" data-g="match"></button>
+    </div>
+    <div class="gpanel" id="g_catch">
+      <p class="ghelp" id="gc_help"></p>
+      <div class="ghud"><span id="gc_score"></span><span id="gc_lives"></span><span id="gc_time"></span><span class="gbest" id="gc_best"></span></div>
+      <div class="gstage">
+        <canvas id="g_cv" aria-label="Yangmal treat catch"></canvas>
+        <div class="gover" id="gc_over" hidden><strong id="gc_res"></strong><small id="gc_sent"></small></div>
+        <button type="button" class="go gplay" id="gc_start"></button>
+      </div>
+      <div class="gboard"><h3 id="g_board_title"></h3><ol class="hboard" id="g_board"></ol></div>
+    </div>
+    <div class="gpanel" id="g_match" hidden>
+      <p class="ghelp" id="gm_help"></p>
+      <div class="ghud"><span id="gm_moves"></span><span id="gm_time"></span><span class="gbest" id="gm_best"></span></div>
+      <div class="mgrid" id="gm_grid"></div>
+      <p class="gres" id="gm_res" aria-live="polite"></p>
+      <button type="button" class="go" id="gm_start"></button>
+    </div>
+  </section>
+
   <section id="cheers">
     <h2 data-i="cheers_title">응원 메시지</h2>
     <p class="lede" data-i="cheers_lede"></p>
@@ -364,6 +390,6 @@
   <audio id="audio" preload="metadata"></audio>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=202611070422"></script>
 </body>
 </html>

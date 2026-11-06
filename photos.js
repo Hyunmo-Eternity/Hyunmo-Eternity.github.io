@@ -41,5 +41,4 @@ export const YANGMAL_VIDEOS = [
 ];
 
 // 첫 화면 눈사람을 누르면 튀어나오는 현모 사진 (비어 있으면 첫 화면 사진 중에서 골라요)
-export const SNOWMAN_PHOTOS = [
-];
+export const SNOWMAN_PHOTOS = ["snowman-1.jpg","snowman-2.jpg","snowman-3.jpg","snowman-4.jpg","snowman-5.jpg","snowman-6.jpg","snowman-7.jpg"];
