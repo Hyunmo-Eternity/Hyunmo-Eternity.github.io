@@ -149,7 +149,7 @@ function renderNotes() {
   for (const n of notes.filter(n => !checkText(n.nick, n.msg))) {
     const a = document.createElement("article"); a.className = "note";
     const who = document.createElement("div"); who.className = "who";
-    const b = document.createElement("b"); b.textContent = `${FLAG[n.from] || "🌏"} ${n.nick}`;
+    const b = document.createElement("b"); b.textContent = `${flagOf(n.from)} ${n.nick}`;
     const s = document.createElement("span"); s.textContent = n.at ? fmt.format(n.at) : "";
     who.append(b, s);
     if (isAdmin || (user && n.id === user.uid)) {
@@ -237,7 +237,7 @@ function renderClips() {
     const m = document.createElement("div"); m.className = "m";
     const tag = document.createElement("span"); tag.className = "ptag " + v.p; tag.textContent = PLAT[v.p]; m.appendChild(tag);
     const d = document.createElement("span"); d.textContent = c.date || ""; m.appendChild(d);
-    if (c.byNick) { const by = document.createElement("span"); by.className = "by"; by.textContent = `${t.sg_by} ${FLAG[c.byFrom] || "🌏"} ${c.byNick}`; m.appendChild(by); }
+    if (c.byNick) { const by = document.createElement("span"); by.className = "by"; by.textContent = `${t.sg_by} ${flagOf(c.byFrom)} ${c.byNick}`; m.appendChild(by); }
     const go = document.createElement("a"); go.href = c.url; go.target = "_blank"; go.rel = "noopener"; go.className = "open"; go.textContent = "↗"; go.setAttribute("aria-label", t.watch); m.appendChild(go);
     if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "clips", c.id)).then(() => logAct("a_del_video", c.song)).catch(() => {}); m.appendChild(x); }
     info.appendChild(m); card.appendChild(info); box.appendChild(card);
@@ -293,7 +293,6 @@ sgBox.innerHTML = `<summary></summary>
     <div class="actions"><button class="go" type="submit" id="sg_send"></button><span class="status" id="sg_status" aria-live="polite"></span></div>
   </form>`;
 $("cliplist").after(sgBox);
-sgBox.querySelector("#sg_from").innerHTML = $("from").innerHTML;
 const pendBox = document.createElement("div"); pendBox.className = "pending"; pendBox.hidden = true;
 $("clipform").after(pendBox);
 function renderSuggest() {
@@ -313,7 +312,7 @@ function renderSuggest() {
     const info = document.createElement("div"); info.className = "pinfo";
     const v = parseVideo(g.url);
     const a = document.createElement("a"); a.href = g.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = `${v ? PLAT[v.p] : "?"} · ${g.song} ↗`;
-    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[g.from] || "🌏"} ${g.nick}`;
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${flagOf(g.from)} ${g.nick}`;
     info.append(a, by);
     const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
     const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
@@ -355,7 +354,6 @@ $("sgform").addEventListener("submit", async e => {
 
 /* ---------- 팬 사진 갤러리 ---------- */
 let fanPhotos = null, photosStarted = false, pendPhotos = [], unsubPendPhotos = null, lbItem = null;
-$("up_from").innerHTML = $("from").innerHTML;
 function startPhotos() {
   if (photosStarted) return;
   if (!db) { setTimeout(startPhotos, 400); return; }
@@ -372,7 +370,7 @@ function renderPhotos() {
   else for (const ph of fanPhotos) {
     const b = document.createElement("button"); b.type = "button"; b.className = "gitem";
     const im = document.createElement("img"); im.src = ph.thumb; im.alt = ph.cap || ""; im.loading = "lazy";
-    const by = document.createElement("span"); by.className = "gby"; by.textContent = `${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+    const by = document.createElement("span"); by.className = "gby"; by.textContent = `${flagOf(ph.from)} ${ph.nick}`;
     b.append(im, by); b.onclick = () => openPhoto(ph); g.appendChild(b);
   }
   // 관리자: 승인 대기
@@ -385,7 +383,7 @@ function renderPhotos() {
     im.onclick = () => openPhoto(ph, true);
     const info = document.createElement("div"); info.className = "pinfo";
     const c = document.createElement("span"); c.textContent = ph.cap || "—";
-    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${flagOf(ph.from)} ${ph.nick}`;
     info.append(c, by);
     const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
     const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
@@ -413,7 +411,7 @@ function watchPhotoPending() {
 async function openPhoto(ph, pendingItem) {
   const t = T[lang], lb = $("lightbox"); lbItem = pendingItem ? null : ph;
   $("lbimg").src = ph.img || ph.thumb; $("lbimg").alt = ph.cap || "";
-  $("lbcap").textContent = ph.cap || ""; $("lbby").textContent = `${FLAG[ph.from] || "🌏"} ${ph.nick}`;
+  $("lbcap").textContent = ph.cap || ""; $("lbby").textContent = `${flagOf(ph.from)} ${ph.nick}`;
   const del = $("lbdel"); del.hidden = !isAdmin || pendingItem; del.textContent = t.del_photo;
   try { lb.showModal(); } catch (e) { lb.setAttribute("open", ""); }
   if (!ph.img && !pendingItem) {
@@ -512,21 +510,33 @@ function guessCountry() {
   return tzc !== "XX" ? tzc : ({ ko: "KR", th: "TH", ja: "JP", fil: "PH", tl: "PH", es: "ES", zh: "CN" }[(navigator.language || "").slice(0, 2)] || "KR");
 }
 
+// 나라 고르기 목록 (⭐ 팬이 많은 나라 + 🌍 전 세계, 사이트 언어로 이름·순서)
+let countryOpts = null, countryOptsLang = null;
+function fillCountries(sel, cur) {
+  if (countryOptsLang !== lang) {
+    countryOptsLang = lang;
+    const coll = new Intl.Collator(lang);
+    const rest = ALL_CC.filter(cc => !TOP_CC.includes(cc)).sort((a, b) => coll.compare(countryName(a), countryName(b)));
+    countryOpts = [["⭐", TOP_CC], ["🌍", rest]];
+  }
+  if (sel.dataset.lang !== lang) {
+    sel.textContent = ""; sel.dataset.lang = lang;
+    for (const [label, list] of countryOpts) {
+      const g = document.createElement("optgroup"); g.label = label;
+      list.forEach(cc => { const o = document.createElement("option"); o.value = cc; o.textContent = `${flagOf(cc)} ${countryName(cc)}`; g.appendChild(o); });
+      sel.appendChild(g);
+    }
+  }
+  sel.value = ALL_CC.includes(cur) ? cur : (ALL_CC.includes(myCountry) ? myCountry : "KR");
+}
+
 /* ---------- 전 세계 하트 보내기 ---------- */
 let hearts = {}, heartQueue = 0, heartTimer = null;
 let myCountry = (() => { try { return localStorage.getItem("hm_cc") || ""; } catch (e) { return ""; } })() || guessCountry();
 function renderHearts() {
   const sel = $("h_from"), cur = sel.value || myCountry;
-  if (sel.dataset.lang !== lang) {
-    sel.textContent = ""; sel.dataset.lang = lang;
-    const opt = cc => { const o = document.createElement("option"); o.value = cc; o.textContent = `${flagOf(cc)} ${countryName(cc)}`; return o; };
-    const g1 = document.createElement("optgroup"); g1.label = "⭐"; TOP_CC.forEach(cc => g1.appendChild(opt(cc)));
-    const g2 = document.createElement("optgroup"); g2.label = "🌍";
-    const coll = new Intl.Collator(lang);
-    ALL_CC.filter(cc => !TOP_CC.includes(cc)).sort((a, b) => coll.compare(countryName(a), countryName(b))).forEach(cc => g2.appendChild(opt(cc)));
-    sel.append(g1, g2);
-  }
-  sel.value = ALL_CC.includes(cur) ? cur : "KR";
+  fillCountries(sel, cur);
+  ["from", "sg_from", "up_from", "es_from", "rq_from"].forEach(id => { const el = $(id); if (el) fillCountries(el, (el.dataset.lang && el.value) || (mine && mine.from) || myCountry); });
   const rows = Object.entries(hearts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((s, [, n]) => s + n, 0) + heartQueue;
   $("h_total").textContent = total.toLocaleString();
@@ -595,7 +605,7 @@ function renderEvents() {
     body.append(ti, when);
     if (myTz !== "Asia/Seoul") { const k = document.createElement("small"); k.textContent = `${t.kst}: ${fmtWhen(ev.when, "Asia/Seoul")}`; body.appendChild(k); }
     if (ev.place) { const pl = document.createElement("small"); pl.textContent = "📍 " + ev.place; body.appendChild(pl); }
-    if (ev.byNick) { const bn = document.createElement("small"); bn.textContent = `${t.sg_by} ${FLAG[ev.byFrom] || "🌏"} ${ev.byNick}`; body.appendChild(bn); }
+    if (ev.byNick) { const bn = document.createElement("small"); bn.textContent = `${t.sg_by} ${flagOf(ev.byFrom)} ${ev.byNick}`; body.appendChild(bn); }
     li.append(ic, body);
     if (isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "events", ev.id)).then(() => logAct("a_del_event", ev.title)).catch(() => {}); li.appendChild(x); }
     list.appendChild(li);
@@ -650,7 +660,6 @@ $("evform").addEventListener("submit", async e => {
 
 /* ---------- 팬 일정 제보 → 관리자 승인 ---------- */
 let evPending = [], unsubEvPending = null;
-$("es_from").innerHTML = $("from").innerHTML;
 function renderEvSuggest() {
   const t = T[lang];
   const ks = $("es_kind"), kv = ks.value; ks.textContent = "";
@@ -671,7 +680,7 @@ function renderEvSuggest() {
     const ti = document.createElement(g.link ? "a" : "b"); ti.textContent = `${KIND_ICON[g.kind] || "✨"} ${g.title}${g.link ? " ↗" : ""}`;
     if (g.link) { ti.href = g.link; ti.target = "_blank"; ti.rel = "noopener"; }
     const w = document.createElement("small"); w.textContent = `${fmtWhen(g.when, myTz)}${g.place ? " · 📍 " + g.place : ""}`;
-    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${FLAG[g.from] || "🌏"} ${g.nick}`;
+    const by = document.createElement("small"); by.textContent = `${t.sg_by} ${flagOf(g.from)} ${g.nick}`;
     info.append(ti, w, by);
     const ok = document.createElement("button"); ok.type = "button"; ok.className = "approve"; ok.textContent = t.sg_ok;
     const no = document.createElement("button"); no.type = "button"; no.className = "reject"; no.textContent = t.sg_no;
@@ -860,7 +869,6 @@ function rqMessage() {
 }
 function renderRequests() {
   const t = T[lang];
-  $("rq_from").innerHTML = $("from").innerHTML;
   if (mine && !$("rq_nick").value) { $("rq_nick").value = mine.nick || ""; $("rq_from").value = mine.from || "XX"; }
   if (myRq && !$("rq_song").value && document.activeElement?.id !== "rq_song") { $("rq_song").value = myRq.title; $("rq_artist").value = myRq.artist; }
   $("rq_send").textContent = myRq ? t.rq_update : t.rq_send;
@@ -884,7 +892,7 @@ function renderRequests() {
       const tt = document.createElement("span"); tt.textContent = g.title;
       const ar = document.createElement("small"); ar.className = "rqart"; ar.textContent = ` · ${g.artist}`;
       const by = document.createElement("small"); by.className = "rqby";
-      const first = g.reqs[0]; by.textContent = `${t.rq_by}: ${FLAG[first.from] || "🌏"} ${first.nick}` + (g.reqs.length > 1 ? ` +${g.reqs.length - 1}` : "");
+      const first = g.reqs[0]; by.textContent = `${t.rq_by}: ${flagOf(first.from)} ${first.nick}` + (g.reqs.length > 1 ? ` +${g.reqs.length - 1}` : "");
       nm.append(tt, ar, by);
       if (mineHere) { const mm = document.createElement("span"); mm.className = "vmine"; mm.textContent = t.rq_my; tt.appendChild(mm); }
       const ct = document.createElement("span"); ct.className = "vc"; ct.textContent = mineHere ? `${g.votes} ${t.v_votes}` : `👍 ${g.votes}`;
@@ -1081,7 +1089,7 @@ function renderManage() {
     td(a.at ? fmt.format(a.at) : "", "mtime");
     const who = td("", "mwho");
     const nb = document.createElement("button"); nb.type = "button"; nb.className = "mlink";
-    nb.textContent = `${FLAG[a.from] || "🌏"} ${a.nick || "(이름 없음)"}`; nb.title = "이 사용자 활동만 보기";
+    nb.textContent = `${flagOf(a.from)} ${a.nick || "(이름 없음)"}`; nb.title = "이 사용자 활동만 보기";
     nb.onclick = () => { actUser = a.uid; renderManage(); };
     const idl = document.createElement("small"); idl.textContent = `ID ${shortId(a.uid)}${bset.has(a.uid) ? " · 🚫제한됨" : ""}`;
     who.append(nb, idl);
@@ -1198,7 +1206,7 @@ function renderTicker() {
   const track = ticker.querySelector(".tk-track"); track.textContent = "";
   const add = () => list.forEach(n => {
     const it = document.createElement("span"); it.className = "tk-item";
-    const b = document.createElement("b"); b.textContent = `${FLAG[n.from] || "🌏"} ${n.nick}`;
+    const b = document.createElement("b"); b.textContent = `${flagOf(n.from)} ${n.nick}`;
     it.append(b, document.createTextNode(" " + String(n.msg).replace(/\s+/g, " ").slice(0, 80)));
     track.appendChild(it);
   });
