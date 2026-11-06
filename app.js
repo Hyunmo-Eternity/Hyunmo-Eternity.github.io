@@ -11,10 +11,15 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
+import * as PH from "./photos.js";
+const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [];
 import { QUIZ } from "./quiz.js";
 import { checkText } from "./filter.js";
 import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
+import * as TH from "./theme.js";
+// 크리스마스 테마 켜기 (theme.js 에서 바꿔요)
+const XMAS = (() => { const t = TH.THEME || "flower", m = new Date(Date.now() + 9 * 3600e3).getUTCMonth() + 1; return t === "christmas" || (t === "auto" && m === 12); })();
+if (XMAS) document.documentElement.classList.add("xmas");
 
 const $ = id => document.getElementById(id);
 const configured = !String(firebaseConfig.apiKey).includes("붙여넣기");
@@ -1183,13 +1188,13 @@ function renderAdmin() {
 
 /* ---------- 꾸밈: 문구 ---------- */
 const X = {
-  ko: { tick: "전 세계 팬들의 응원", bday: "🎂 오늘은 현모의 생일이에요! 생일 축하해요!", debut: n => `🎉 오늘은 현모 데뷔 ${n}주년! 축하해요!` },
-  en: { tick: "Cheers from around the world", bday: "🎂 It's Hyunmo's birthday today! Happy birthday!", debut: n => `🎉 Today is Hyunmo's ${n}-year debut anniversary!` },
-  th: { tick: "กำลังใจจากแฟน ๆ ทั่วโลก", bday: "🎂 วันนี้วันเกิดฮยอนโม! สุขสันต์วันเกิดนะ!", debut: n => `🎉 วันนี้ครบรอบ ${n} ปีการเดบิวต์ของฮยอนโม!` },
-  zh: { tick: "来自世界各地粉丝的应援", bday: "🎂 今天是 Hyunmo 的生日！生日快乐！", debut: n => `🎉 今天是 Hyunmo 出道 ${n} 周年！恭喜！` },
-  fil: { tick: "Mga cheer mula sa buong mundo", bday: "🎂 Kaarawan ni Hyunmo ngayon! Happy birthday!", debut: n => `🎉 Ngayon ang ika-${n} taon ng debut ni Hyunmo!` },
-  es: { tick: "Ánimos de fans de todo el mundo", bday: "🎂 ¡Hoy es el cumpleaños de Hyunmo! ¡Feliz cumpleaños!", debut: n => `🎉 ¡Hoy se cumplen ${n} años del debut de Hyunmo!` },
-  ja: { tick: "世界中のファンからの応援", bday: "🎂 今日はヒョンモの誕生日！お誕生日おめでとう！", debut: n => `🎉 今日はヒョンモのデビュー${n}周年！おめでとう！` }
+  ko: { xsay: "메리 크리스마스! ⛄", xgift: "🎁 선물 열기", xhi: "🎄 현모와 함께하는 크리스마스", xday: "🎄 메리 크리스마스! 현모와 함께 따뜻한 연말 보내요", tick: "전 세계 팬들의 응원", bday: "🎂 오늘은 현모의 생일이에요! 생일 축하해요!", debut: n => `🎉 오늘은 현모 데뷔 ${n}주년! 축하해요!` },
+  en: { xsay: "Merry Christmas! ⛄", xgift: "🎁 Open the gift", xhi: "🎄 Christmas with Hyunmo", xday: "🎄 Merry Christmas! Warm holidays with Hyunmo", tick: "Cheers from around the world", bday: "🎂 It's Hyunmo's birthday today! Happy birthday!", debut: n => `🎉 Today is Hyunmo's ${n}-year debut anniversary!` },
+  th: { xsay: "เมอร์รี่คริสต์มาส! ⛄", xgift: "🎁 เปิดของขวัญ", xhi: "🎄 คริสต์มาสกับฮยอนโม", xday: "🎄 สุขสันต์วันคริสต์มาส! ขอให้อบอุ่นไปกับฮยอนโม", tick: "กำลังใจจากแฟน ๆ ทั่วโลก", bday: "🎂 วันนี้วันเกิดฮยอนโม! สุขสันต์วันเกิดนะ!", debut: n => `🎉 วันนี้ครบรอบ ${n} ปีการเดบิวต์ของฮยอนโม!` },
+  zh: { xsay: "圣诞快乐！⛄", xgift: "🎁 打开礼物", xhi: "🎄 和 Hyunmo 一起过圣诞", xday: "🎄 圣诞快乐！和 Hyunmo 一起度过温暖的假期", tick: "来自世界各地粉丝的应援", bday: "🎂 今天是 Hyunmo 的生日！生日快乐！", debut: n => `🎉 今天是 Hyunmo 出道 ${n} 周年！恭喜！` },
+  fil: { xsay: "Maligayang Pasko! ⛄", xgift: "🎁 Buksan ang regalo", xhi: "🎄 Pasko kasama si Hyunmo", xday: "🎄 Maligayang Pasko! Mainit na kapaskuhan kasama si Hyunmo", tick: "Mga cheer mula sa buong mundo", bday: "🎂 Kaarawan ni Hyunmo ngayon! Happy birthday!", debut: n => `🎉 Ngayon ang ika-${n} taon ng debut ni Hyunmo!` },
+  es: { xsay: "¡Feliz Navidad! ⛄", xgift: "🎁 Abrir el regalo", xhi: "🎄 Navidad con Hyunmo", xday: "🎄 ¡Feliz Navidad! Unas fiestas cálidas con Hyunmo", tick: "Ánimos de fans de todo el mundo", bday: "🎂 ¡Hoy es el cumpleaños de Hyunmo! ¡Feliz cumpleaños!", debut: n => `🎉 ¡Hoy se cumplen ${n} años del debut de Hyunmo!` },
+  ja: { xsay: "メリークリスマス！⛄", xgift: "🎁 プレゼントを開ける", xhi: "🎄 ヒョンモと過ごすクリスマス", xday: "🎄 メリークリスマス！ヒョンモと温かい年末を", tick: "世界中のファンからの応援", bday: "🎂 今日はヒョンモの誕生日！お誕生日おめでとう！", debut: n => `🎉 今日はヒョンモのデビュー${n}周年！おめでとう！` }
 };
 const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1218,15 +1223,26 @@ function renderTicker() {
 const sky = document.createElement("canvas"); sky.className = "petals"; sky.setAttribute("aria-hidden", "true");
 document.body.appendChild(sky);
 const ctx = sky.getContext("2d");
-const COLORS = ["#F4A6B8", "#F7C1CF", "#FAD4DD", "#E98AA5", "#BFE3CF", "#FFE3A3", "#C9D8FF"];
+const COLORS = XMAS ? ["#FFFFFF", "#EAF2FB", "#DCE9F7", "#C8102E", "#1E6B47", "#D4AF37", "#F4F1E8"] : ["#F4A6B8", "#F7C1CF", "#FAD4DD", "#E98AA5", "#BFE3CF", "#FFE3A3", "#C9D8FF"];
 let petals = [], burst = [], W = 0, H = 0, dpr = 1;
 function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; sky.width = W * dpr; sky.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 function newPetal(top) {
   return { x: Math.random() * W, y: top ? -20 : Math.random() * H, r: 5 + Math.random() * 6, vy: 0.35 + Math.random() * 0.6,
     sway: Math.random() * Math.PI * 2, sw: 0.4 + Math.random() * 0.8, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.03,
-    c: COLORS[Math.floor(Math.random() * 3)] };
+    c: COLORS[Math.floor(Math.random() * 3)], snow: XMAS, star: XMAS && Math.random() < 0.35 };
 }
 function drawPetal(p, alpha) {
+  if (p.snow) { // 눈송이: 동그란 눈과 여섯 갈래 눈꽃
+    ctx.save(); ctx.globalAlpha = alpha + 0.25; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.shadowColor = "rgba(90,120,160,.55)"; ctx.shadowBlur = 4;
+    if (p.star) {
+      ctx.strokeStyle = p.c; ctx.lineWidth = 1.4; ctx.lineCap = "round"; ctx.beginPath();
+      for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3, r = p.r * 1.1; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        ctx.moveTo(Math.cos(a) * r * .55, Math.sin(a) * r * .55); ctx.lineTo(Math.cos(a + .5) * r * .8, Math.sin(a + .5) * r * .8); }
+      ctx.stroke();
+    } else { ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(0, 0, p.r * 0.45, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore(); return;
+  }
   ctx.save(); ctx.globalAlpha = alpha; ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c;
   ctx.beginPath(); ctx.ellipse(0, 0, p.r * 0.6, p.r, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
@@ -1250,14 +1266,79 @@ function start() { if (!running && !reduceMotion) { running = true; requestAnima
 document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
 addEventListener("resize", size);
 size();
-const petalCount = innerWidth < 600 ? 10 : 18;
+const petalCount = XMAS ? (innerWidth < 600 ? 22 : 40) : (innerWidth < 600 ? 10 : 18);
 for (let i = 0; i < petalCount; i++) petals.push(newPetal(false));
 start();
 function confetti() {
   if (reduceMotion) return;
   for (let i = 0; i < 140; i++) burst.push({ x: W / 2 + (Math.random() - .5) * 120, y: H * 0.3, vx: (Math.random() - .5) * 9, vy: -4 - Math.random() * 6,
-    r: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.3, c: COLORS[Math.floor(Math.random() * COLORS.length)], life: 180 + Math.random() * 80 });
+    r: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.3, c: COLORS[XMAS ? 3 + Math.floor(Math.random() * 4) : Math.floor(Math.random() * COLORS.length)], life: 180 + Math.random() * 80 });
   start();
+}
+
+/* ---------- 양말이 코너 ---------- */
+(function () {
+  const g = $("ym_grid"), box = $("yangmal");
+  if (!YANGMAL.length) { box.hidden = true; return; }
+  YANGMAL.forEach((src, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "ympic"; b.style.setProperty("--r", [-4, 3, -2, 5][i % 4] + "deg");
+    const im = document.createElement("img"); im.src = src; im.alt = "양말이"; im.loading = "lazy";
+    b.appendChild(im); b.onclick = () => openPhoto({ img: src, thumb: src, cap: T[lang].ym_title, nick: "Hyunmo", from: "KR" }, true);
+    g.appendChild(b);
+  });
+})();
+
+/* ---------- 꾸밈: 크리스마스 장식 ---------- */
+let xribbon = null;
+if (XMAS) {
+  const lights = document.createElement("div"); lights.className = "xlights"; lights.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 28; i++) { const b = document.createElement("i"); b.style.setProperty("--d", (i % 4) * 0.35 + "s"); lights.appendChild(b); }
+  document.querySelector(".bar").appendChild(lights);
+  xribbon = document.createElement("div"); xribbon.className = "xribbon";
+  document.querySelector(".hero .kicker").after(xribbon);
+
+  // 하늘을 날아가는 썰매 (30초마다)
+  const sleigh = document.createElement("div"); sleigh.className = "xsleigh"; sleigh.setAttribute("aria-hidden", "true");
+  sleigh.innerHTML = '<div class="xs-bob"><span class="xs-deer">🦌</span><span class="xs-deer">🦌</span><span class="xs-rein"></span><span class="xs-sled">🛷<b>🎅</b></span><span class="xs-trail">✨</span></div>';
+  document.body.appendChild(sleigh);
+  const fly = () => { if (document.hidden || reduceMotion) return; sleigh.classList.remove("go"); void sleigh.offsetWidth; sleigh.classList.add("go"); };
+  setTimeout(fly, 2500); setInterval(fly, 30000);
+
+  // 눈 덮인 언덕 장면: 흔들리는 나무, 손 흔드는 눈사람, 열리는 선물 상자
+  const scene = document.createElement("div"); scene.className = "xscene";
+  scene.innerHTML = `
+    <span class="xtree t1"></span><span class="xtree t2"></span><span class="xtree t3"></span>
+    <button type="button" class="xsnowman" aria-label="snowman">
+      <span class="sm-hat"></span><span class="sm-head"><i class="sm-nose"></i></span><span class="sm-scarf"></span>
+      <span class="sm-body"></span><span class="sm-arm l"></span><span class="sm-arm r"></span>
+    </button>
+    <span class="xbubble" hidden></span>
+    <button type="button" class="xgift"><span class="g-lid"></span><span class="g-box"></span><span class="g-label"></span></button>
+    <span class="xhill"></span>`;
+  document.querySelector(".hero .counts").after(scene);
+  const bubble = scene.querySelector(".xbubble");
+  scene.querySelector(".xsnowman").addEventListener("click", () => {
+    bubble.textContent = X[lang].xsay; bubble.hidden = false;
+    scene.classList.remove("hop"); void scene.offsetWidth; scene.classList.add("hop");
+    clearTimeout(bubble._t); bubble._t = setTimeout(() => { bubble.hidden = true; }, 2600);
+  });
+  const gift = scene.querySelector(".xgift");
+  gift.addEventListener("click", () => {
+    if (gift.classList.contains("open")) return;
+    gift.classList.add("open");
+    const r = gift.getBoundingClientRect();
+    if (!reduceMotion) for (let i = 0; i < 70; i++) burst.push({ x: r.left + r.width / 2, y: r.top, vx: (Math.random() - .5) * 7, vy: -3 - Math.random() * 6,
+      r: 4 + Math.random() * 4, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.3, c: COLORS[3 + Math.floor(Math.random() * 4)], life: 150 + Math.random() * 60 });
+    start();
+    if (YANGMAL.length) {
+      const pop = scene.querySelector(".xpop") || Object.assign(document.createElement("figure"), { className: "xpop" });
+      pop.innerHTML = ""; const im = document.createElement("img"); im.src = YANGMAL[Math.floor(Math.random() * YANGMAL.length)]; im.alt = "양말이";
+      const cap = document.createElement("figcaption"); cap.textContent = T[lang].ym_hi; pop.append(im, cap);
+      scene.appendChild(pop); pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show");
+      clearTimeout(pop._t); pop._t = setTimeout(() => pop.classList.remove("show"), 3200);
+    }
+    setTimeout(() => gift.classList.remove("open"), 3200);
+  });
 }
 
 /* ---------- 꾸밈: 생일·데뷔 기념일 ---------- */
@@ -1267,14 +1348,17 @@ function celebrateKind() {
   const n = new Date(Date.now() + 9 * 3600e3), m = n.getUTCMonth() + 1, d = n.getUTCDate();
   if (location.hash === "#birthday" || (m === 9 && d === 11)) return { k: "bday" };
   if (location.hash === "#debut" || (m === 11 && d === 4)) return { k: "debut", n: n.getUTCFullYear() - 2020 };
+  if (XMAS && m === 12 && (d === 24 || d === 25)) return { k: "xmas" };
   return null;
 }
 let celebrated = false;
 function renderCelebrate() {
+  if (xribbon) xribbon.textContent = X[lang].xhi;
+  const gl = document.querySelector(".xgift .g-label"); if (gl) gl.textContent = X[lang].xgift;
   const c = celebrateKind();
   celebrate.hidden = !c;
   if (!c) return;
-  celebrate.textContent = c.k === "bday" ? X[lang].bday : X[lang].debut(c.n);
+  celebrate.textContent = c.k === "bday" ? X[lang].bday : c.k === "xmas" ? X[lang].xday : X[lang].debut(c.n);
   if (!celebrated) { celebrated = true; setTimeout(confetti, 400); }
 }
 celebrate.addEventListener("click", confetti);

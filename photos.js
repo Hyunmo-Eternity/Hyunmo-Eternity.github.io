@@ -16,7 +16,17 @@ export const PHOTOS = [
   "hyunmo-12.jpg",
   "hyunmo-13.jpg",
   "hyunmo-14.jpg",
+  "hyunmo-15.jpg",
+  "hyunmo-16.jpg",
 ];
 
 // 사진이 바뀌는 간격 (초)
 export const PHOTO_SECONDS = 5;
+
+// 현모의 반려견 양말이 사진 (프로필 코너 + 크리스마스 선물 상자)
+export const YANGMAL = [
+  "yangmal-4.jpg",
+  "yangmal-3.jpg",
+  "yangmal-1.jpg",
+  "yangmal-2.jpg",
+];
