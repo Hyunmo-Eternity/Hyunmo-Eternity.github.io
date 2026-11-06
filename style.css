@@ -662,3 +662,73 @@ html,body{overflow-x:clip}
 .xpop img{width:100%;aspect-ratio:1;max-width:100%;object-fit:cover;border-radius:5px;display:block}
 .xpop figcaption{font-size:10.5px;font-weight:700;text-align:center;color:#C8102E;padding-top:3px;line-height:1.3}
 .xscene{height:190px}
+
+/* ================= 양말이 페이지 ================= */
+#dog{background:linear-gradient(180deg,#FFF1E6,var(--t-pink))}
+:root.xmas #dog{background:linear-gradient(180deg,var(--t-peach),var(--t-pink))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #dog{background:linear-gradient(180deg,#2A1F18,var(--t-pink))}}
+:root[data-theme="dark"] #dog{background:linear-gradient(180deg,#2A1F18,var(--t-pink))}
+.doghead{display:flex;gap:16px;align-items:center;flex-wrap:wrap;position:relative}
+.doghead > div{flex:1 1 240px;min-width:0}
+.pupbig{flex:none;width:150px;height:150px;border:0;padding:0;background:none;cursor:pointer}
+.pupbig svg,.pupcorner svg{width:100%;height:100%;display:block;overflow:visible}
+.barkbubble{position:absolute;left:118px;top:4px;z-index:2;background:var(--paper);color:var(--ink);font-weight:700;font-size:14px;
+  padding:5px 12px;border-radius:14px 14px 14px 2px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.ymmore{justify-self:start;font-size:14px;font-weight:700;color:var(--petal);text-decoration:none}
+/* 꼬리 흔들기 · 고개 갸웃 · 누르면 폴짝 */
+.pup-tail{transform-origin:112px 80px;transform-box:view-box}
+.pup-head{transform-origin:44px 70px;transform-box:view-box}
+@media (prefers-reduced-motion:no-preference){
+  .pup-tail{animation:wag .35s ease-in-out infinite alternate}
+  @keyframes wag{from{transform:rotate(-16deg)}to{transform:rotate(18deg)}}
+  .pup-head{animation:tilt 4s ease-in-out infinite}
+  @keyframes tilt{0%,70%,100%{transform:none}80%{transform:rotate(-10deg)}90%{transform:rotate(6deg)}}
+  .pup-tongue{animation:pant .5s ease-in-out infinite alternate}
+  @keyframes pant{to{transform:translateY(1.5px)}}
+  .wiggle{animation:pupjump .55s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes pupjump{40%{transform:translateY(-16px) rotate(-4deg)}}
+}
+/* 화면 구석에서 쳐다보는 양말이 (PC) */
+.pupcorner{position:fixed;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:30;
+  width:96px;height:96px;border:0;padding:0;background:none;cursor:pointer;display:none}
+.pc-bubble{position:absolute;left:70px;top:-6px;white-space:nowrap;background:var(--paper);color:var(--ink);font-weight:700;font-size:13px;
+  padding:4px 10px;border-radius:12px 12px 12px 2px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+@media (min-width:1000px){.pupcorner{display:block}}
+/* 다이어리 */
+.diary{list-style:none;margin:0 0 8px;padding:6px 2px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.dyitem{background:#fff;color:#2B2A33;border-radius:6px;padding:8px 8px 10px;transform:rotate(var(--r));box-shadow:0 8px 20px rgba(0,0,0,.13);display:grid;gap:6px}
+.dypic{border:0;padding:0;background:none;cursor:zoom-in}
+.dypic img{width:100%;aspect-ratio:1;max-width:100%;object-fit:cover;border-radius:3px;display:block}
+.dytext{display:grid;gap:2px;font-size:13px}
+.dytext small{color:#8A8390;font-variant-numeric:tabular-nums}
+.dytext p{margin:0;overflow-wrap:anywhere}
+.dytext .evdel{justify-self:end;color:#8A8390}
+:root.xmas .dyitem::before{content:"🎀";position:absolute;margin:-18px 0 0 -6px;font-size:20px}
+.dyitem{position:relative}
+/* 편지 */
+#lform{margin-bottom:14px}
+.letters{display:grid;gap:10px}
+.lthead{display:none}
+.ltgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.ltgrid .empty{grid-column:1/-1}
+.ltcard{position:relative;background:#FFFBEF;color:#3A2E25;border-radius:4px 16px 16px 16px;padding:14px 14px 12px;transform:rotate(var(--r));
+  box-shadow:0 6px 16px rgba(120,80,40,.15);display:grid;gap:8px;background-image:repeating-linear-gradient(transparent 0 23px,rgba(168,100,47,.12) 23px 24px)}
+.ltcard p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:24px}
+.ltcard small{color:#A8642F;font-weight:700}
+.ltcard .del{position:absolute;right:10px;bottom:10px;font:inherit;font-size:11px;background:none;border:0;color:#A08C7C;cursor:pointer}
+.ltcard::before{content:"🐾";position:absolute;right:10px;top:-10px;font-size:18px}
+/* 인쇄용: 편지만 카드로 */
+@media print{
+  body.printletters *{visibility:hidden}
+  body.printletters .letters,body.printletters .letters *{visibility:visible}
+  body.printletters .letters{position:absolute;left:0;top:0;width:100%;padding:24px}
+  body.printletters .lthead{display:block;font-family:var(--f-display);font-size:28px;text-align:center;margin-bottom:12px;color:#A8642F}
+  body.printletters .lthead small{display:block;font-size:13px;color:#8A8390}
+  body.printletters .ltcard{box-shadow:none;border:1px solid #E8D9C8;break-inside:avoid}
+  body.printletters .ltcard .del,body.printletters canvas,body.printletters .pupcorner{display:none!important}
+}
+
+:root.xmas .hero.compact .xscene{display:none}
+/* 양말이 영상 */
+.dyvideos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:8px}
+.dyvideos .clip{background:var(--paper)}

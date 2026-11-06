@@ -12,7 +12,7 @@ const PLAYLIST = (() => {
 })();
 const AUTO_START = PL.AUTO_START !== false;
 import * as PH from "./photos.js";
-const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [];
+const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [];
 import { QUIZ } from "./quiz.js";
 import { checkText } from "./filter.js";
 import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
@@ -190,7 +190,7 @@ function parseVideo(u) {
   }
   if (/(^|\.)instagram\.com$/.test(h)) {
     const m = /\/(p|reel|reels|tv)\/([\w-]+)/.exec(x.pathname);
-    return { p: "instagram", who: "Instagram", tall: true, insta: true, embed: m ? `https://www.instagram.com/${m[1] === "reels" ? "reel" : m[1]}/${m[2]}/embed` : null };
+    return { p: "instagram", who: "Instagram", tall: true, insta: true, embed: m ? `https://www.instagram.com/p/${m[2]}/embed` : null };
   }
   return null;
 }
@@ -541,7 +541,7 @@ let myCountry = (() => { try { return localStorage.getItem("hm_cc") || ""; } cat
 function renderHearts() {
   const sel = $("h_from"), cur = sel.value || myCountry;
   fillCountries(sel, cur);
-  ["from", "sg_from", "up_from", "es_from", "rq_from"].forEach(id => { const el = $(id); if (el) fillCountries(el, (el.dataset.lang && el.value) || (mine && mine.from) || myCountry); });
+  ["from", "sg_from", "up_from", "es_from", "rq_from", "lt_from"].forEach(id => { const el = $(id); if (el) fillCountries(el, (el.dataset.lang && el.value) || (mine && mine.from) || myCountry); });
   const rows = Object.entries(hearts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((s, [, n]) => s + n, 0) + heartQueue;
   $("h_total").textContent = total.toLocaleString();
@@ -1038,7 +1038,7 @@ const ACT = {
   cheer: "💌 응원 작성", cheer_edit: "✏️ 응원 수정", cheer_del: "🗑 응원 삭제(본인)", video: "🎬 영상 추천", photo: "📷 사진 올림", event: "📢 일정 제보", vote: "🏆 투표",
   a_del_cheer: "🛠 응원 삭제", a_ok_video: "🛠 영상 승인", a_no_video: "🛠 영상 거절", a_add_video: "🛠 영상 추가", a_del_video: "🛠 영상 삭제",
   a_ok_photo: "🛠 사진 승인", a_no_photo: "🛠 사진 거절", a_del_photo: "🛠 사진 삭제", a_ok_event: "🛠 일정 승인", a_no_event: "🛠 일정 거절",
-  a_add_event: "🛠 일정 추가", a_del_event: "🛠 일정 삭제", a_live_on: "🛠 라이브 켬", a_live_off: "🛠 라이브 끔", a_ban: "🛠 이용 제한", a_unban: "🛠 제한 해제", req: "🎤 신청곡", req_vote: "🎶 신청곡 투표", a_req_sent: "🛠 신청곡 결과 전달",
+  a_add_event: "🛠 일정 추가", a_del_event: "🛠 일정 삭제", a_live_on: "🛠 라이브 켬", a_live_off: "🛠 라이브 끔", a_ban: "🛠 이용 제한", a_unban: "🛠 제한 해제", req: "🎤 신청곡", letter: "🐾 양말이 편지", a_add_diary: "🛠 양말이 다이어리 추가", a_del_diary: "🛠 양말이 다이어리 삭제", a_del_letter: "🛠 양말이 편지 삭제", req_vote: "🎶 신청곡 투표", a_req_sent: "🛠 신청곡 결과 전달",
 };
 // 활동을 기록해요. 기록이 실패해도 원래 동작에는 영향을 주지 않아요.
 function logAct(kind, detail, o = {}) {
@@ -1168,7 +1168,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -1232,6 +1232,12 @@ function newPetal(top) {
     c: COLORS[Math.floor(Math.random() * 3)], snow: XMAS, star: XMAS && Math.random() < 0.35 };
 }
 function drawPetal(p, alpha) {
+  if (p.paw) { // 발자국
+    ctx.save(); ctx.globalAlpha = Math.min(1, alpha + .2); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; const r = p.r;
+    ctx.beginPath(); ctx.ellipse(0, r * .35, r * .62, r * .52, 0, 0, 7); ctx.fill();
+    [[-.62, -.35], [-.22, -.72], [.22, -.72], [.62, -.35]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.ellipse(dx * r, dy * r, r * .2, r * .26, dx * .5, 0, 7); ctx.fill(); });
+    ctx.restore(); return;
+  }
   if (p.snow) { // 눈송이: 동그란 눈과 여섯 갈래 눈꽃
     ctx.save(); ctx.globalAlpha = alpha + 0.25; ctx.translate(p.x, p.y); ctx.rotate(p.rot);
     ctx.shadowColor = "rgba(90,120,160,.55)"; ctx.shadowBlur = 4;
@@ -1275,6 +1281,179 @@ function confetti() {
     r: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.3, c: COLORS[XMAS ? 3 + Math.floor(Math.random() * 4) : Math.floor(Math.random() * COLORS.length)], life: 180 + Math.random() * 80 });
   start();
 }
+
+/* ---------- 양말이 캐릭터 (직접 그린 곱슬 갈색 푸들 · 핑크 리본) ---------- */
+function poodleSVG() {
+  const c = (x, y, r, f) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`;
+  const fur = "#A8642F", fur2 = "#C07A3E", dark = "#8A4E22";
+  let body = "";
+  [[60, 92, 22], [82, 90, 22], [100, 92, 20], [70, 104, 18], [92, 106, 18]].forEach(([x, y, r]) => body += c(x, y, r, fur));
+  [[66, 86, 9], [86, 84, 9], [98, 96, 7]].forEach(([x, y, r]) => body += c(x, y, r, fur2));
+  let legs = "";
+  [[62, 124], [76, 126], [92, 126], [104, 122]].forEach(([x, y]) => legs += `<rect x="${x - 5}" y="${y - 16}" width="10" height="18" rx="5" fill="${dark}"/>` + c(x, y, 7, fur));
+  let head = "";
+  [[40, 54, 18], [56, 46, 16], [30, 44, 13], [44, 36, 14], [58, 30, 11], [34, 64, 13], [52, 64, 13]].forEach(([x, y, r]) => head += c(x, y, r, fur));
+  [[46, 30, 7], [36, 40, 6], [56, 40, 6]].forEach(([x, y, r]) => head += c(x, y, r, fur2));
+  let ear = "";
+  [[22, 56, 10], [19, 68, 10], [22, 80, 9]].forEach(([x, y, r]) => ear += c(x, y, r, dark));
+  return `<svg viewBox="0 0 140 140" aria-hidden="true">
+    <ellipse cx="80" cy="132" rx="40" ry="5" fill="rgba(0,0,0,.12)"/>
+    <g class="pup-tail">${c(116, 74, 9, fur)}${c(122, 64, 10, fur2)}${c(118, 58, 7, fur)}</g>
+    <g class="pup-body">${body}${legs}</g>
+    <g class="pup-head">${ear}${head}
+      <ellipse cx="40" cy="66" rx="14" ry="10" fill="#D9A06A"/>
+      ${c(31, 54, 3.4, "#1E1A18")}${c(51, 54, 3.4, "#1E1A18")}${c(32, 53, 1.1, "#fff")}${c(52, 53, 1.1, "#fff")}
+      <ellipse cx="40" cy="62" rx="5" ry="3.6" fill="#1E1A18"/>
+      <path d="M36 68 Q40 72 44 68" stroke="#1E1A18" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <ellipse class="pup-tongue" cx="40" cy="73" rx="3.4" ry="4.6" fill="#F47A93"/>
+      ${c(26, 62, 3.4, "rgba(244,122,147,.45)")}${c(56, 62, 3.4, "rgba(244,122,147,.45)")}
+      <g class="pup-bow" transform="translate(58 24) rotate(18)"><path d="M0 0 L-11 -7 L-11 7 Z" fill="#F06292"/><path d="M0 0 L11 -7 L11 7 Z" fill="#F06292"/>${c(0, 0, 3.4, "#E91E63")}</g>
+    </g></svg>`;
+}
+function pawBurst(x, y, n = 16) {
+  if (reduceMotion) return;
+  const cols = ["#A8642F", "#C07A3E", "#F06292", "#8A4E22"];
+  for (let i = 0; i < n; i++) burst.push({ paw: true, x, y, vx: (Math.random() - .5) * 8, vy: -2 - Math.random() * 6, r: 6 + Math.random() * 5,
+    rot: (Math.random() - .5) * 1.2, vr: (Math.random() - .5) * .08, c: cols[i % cols.length], life: 140 + Math.random() * 60 });
+  start();
+}
+function bark(el, bubbleEl) {
+  el.classList.remove("wiggle"); void el.offsetWidth; el.classList.add("wiggle");
+  const r = el.getBoundingClientRect(); pawBurst(r.left + r.width / 2, r.top + r.height / 3);
+  if (bubbleEl) { bubbleEl.textContent = T[lang].dog_bark; bubbleEl.hidden = false; clearTimeout(bubbleEl._t); bubbleEl._t = setTimeout(() => { bubbleEl.hidden = true; }, 1800); }
+}
+$("pupbig").innerHTML = poodleSVG();
+$("pupbig").addEventListener("click", () => bark($("pupbig"), $("barkbubble")));
+const pupCorner = document.createElement("button"); pupCorner.type = "button"; pupCorner.className = "pupcorner"; pupCorner.setAttribute("aria-label", "Yangmal");
+pupCorner.innerHTML = poodleSVG() + '<span class="pc-bubble" hidden></span>';
+document.body.appendChild(pupCorner);
+pupCorner.addEventListener("click", () => { bark(pupCorner, pupCorner.querySelector(".pc-bubble")); setTimeout(() => { location.hash = "#dog"; }, 700); });
+
+/* ---------- 양말이 다이어리 + 편지 ---------- */
+const DIARY_STATIC = { "yangmal-1.jpg": "cap1", "yangmal-2.jpg": "cap2", "yangmal-3.jpg": "cap3", "yangmal-4.jpg": "cap4", "yangmal-5.jpg": "cap5", "yangmal-6.jpg": "cap6" };
+let diary = null, letters = null, myLetter = null, dogStarted = false, dogVideos = null;
+function startDog() {
+  if (dogStarted) return renderDog();
+  try { if (!db) { setTimeout(startDog, 400); return; } } catch (e) { setTimeout(startDog, 400); return; }
+  dogStarted = true;
+  onSnapshot(query(collection(db, "yangmal_diary"), orderBy("at", "desc"), limit(100)), snap => {
+    diary = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderDog();
+  }, () => { diary = []; renderDog(); });
+  onSnapshot(query(collection(db, "yangmal_videos"), orderBy("at", "desc"), limit(60)), snap => {
+    dogVideos = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderDog();
+  }, () => { dogVideos = []; renderDog(); });
+  onSnapshot(query(collection(db, "yangmal_letters"), orderBy("at", "desc"), limit(300)), snap => {
+    letters = snap.docs.map(d => { const v = d.data({ serverTimestamps: "estimate" }); return { id: d.id, ...v }; });
+    myLetter = user ? letters.find(l => l.id === user.uid) || null : null;
+    if (myLetter && !$("lt_msg").value && document.activeElement?.id !== "lt_msg") { $("lt_nick").value = myLetter.nick; $("lt_msg").value = myLetter.msg; $("lt_from").value = myLetter.from || myCountry; }
+    renderDog();
+  }, () => { letters = []; renderDog(); });
+}
+function renderDog() {
+  const t = T[lang];
+  $("dyform").hidden = !isAdmin; $("ltadmin").hidden = !isAdmin || !(letters || []).length;
+  if (mine && !$("lt_nick").value) $("lt_nick").value = mine.nick || "";
+  $("lt_send").textContent = myLetter ? t.b_letter_edit : t.b_letter_send;
+  // 다이어리
+  const ol = $("diary"); ol.textContent = "";
+  const items = [...(diary || []).map(d => ({ ...d, db: true })), ...YANGMAL.map(f => ({ img: f, thumb: f, capKey: DIARY_STATIC[f] }))];
+  items.forEach((it, i) => {
+    const li = document.createElement("li"); li.className = "dyitem"; li.style.setProperty("--r", [-2, 2, -1.5, 1.5][i % 4] + "deg");
+    const b = document.createElement("button"); b.type = "button"; b.className = "dypic";
+    const im = document.createElement("img"); im.src = it.thumb; im.alt = ""; im.loading = "lazy"; b.appendChild(im);
+    const cap = it.capKey ? t[it.capKey] : (it.cap || "");
+    b.onclick = async () => {
+      let full = it.img;
+      if (it.db && !full) { try { const f = await getDoc(doc(db, "yangmal_full", it.id)); if (f.exists()) full = f.data().img; } catch (e) {} }
+      openPhoto({ img: full || it.thumb, thumb: it.thumb, cap, nick: "Yangmal", from: "KR" }, true);
+    };
+    const tx = document.createElement("div"); tx.className = "dytext";
+    if (it.date) { const d = document.createElement("small"); d.textContent = it.date.replace(/-/g, "."); tx.appendChild(d); }
+    const p = document.createElement("p"); p.textContent = cap; tx.appendChild(p);
+    if (it.db && isAdmin) { const x = document.createElement("button"); x.type = "button"; x.className = "evdel"; x.textContent = t.del;
+      x.onclick = async () => { try { await deleteDoc(doc(db, "yangmal_diary", it.id)); await deleteDoc(doc(db, "yangmal_full", it.id)); logAct("a_del_diary", it.cap || ""); } catch (e) {} }; tx.appendChild(x); }
+    li.append(b, tx); ol.appendChild(li);
+  });
+  // 영상
+  $("dvform").hidden = !isAdmin;
+  const vb = $("dyvideos"); vb.textContent = "";
+  [...(dogVideos || []), ...YANGMAL_VIDEOS.map(url => ({ url }))].forEach(vd => {
+    const v = parseVideo(vd.url); if (!v) return;
+    const card = document.createElement("article"); card.className = `clip ${v.p}`;
+    if (v.embed) { const f = document.createElement("iframe"); f.className = "embed" + (v.tall ? "" : " landscape") + (v.insta ? " insta" : ""); f.loading = "lazy";
+      f.src = v.embed; f.dataset.p = v.p; f.title = "Yangmal"; f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay"; card.appendChild(f); }
+    else { const a = document.createElement("a"); a.className = "face"; a.href = vd.url; a.target = "_blank"; a.rel = "noopener"; a.innerHTML = '<span class="play"></span>'; card.appendChild(a); }
+    const m = document.createElement("div"); m.className = "info"; const mm = document.createElement("div"); mm.className = "m";
+    const tg = document.createElement("span"); tg.className = "ptag " + v.p; tg.textContent = PLAT[v.p]; mm.appendChild(tg);
+    const go = document.createElement("a"); go.href = vd.url; go.target = "_blank"; go.rel = "noopener"; go.className = "open"; go.textContent = "↗"; mm.appendChild(go);
+    if (vd.id && isAdmin) { const x = document.createElement("button"); x.type = "button"; x.textContent = t.del; x.onclick = () => deleteDoc(doc(db, "yangmal_videos", vd.id)).catch(() => {}); mm.appendChild(x); }
+    m.appendChild(mm); card.appendChild(m); vb.appendChild(card);
+  });
+  // 편지
+  const g = $("ltgrid"); g.textContent = "";
+  const list = (letters || []).filter(l => !checkText(l.nick, l.msg));
+  if (!letters) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.loading; g.appendChild(e); }
+  else if (!list.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = t.noletters; g.appendChild(e); }
+  list.forEach((l, i) => {
+    const c = document.createElement("article"); c.className = "ltcard"; c.style.setProperty("--r", [-2, 1.5, -1, 2, 0][i % 5] + "deg");
+    const m = document.createElement("p"); m.textContent = l.msg;
+    const by = document.createElement("small"); by.textContent = `🐾 ${flagOf(l.from)} ${l.nick}`;
+    c.append(m, by);
+    if (isAdmin || (user && l.id === user.uid)) { const x = document.createElement("button"); x.type = "button"; x.className = "del"; x.textContent = t.del;
+      x.onclick = () => deleteDoc(doc(db, "yangmal_letters", l.id)).then(() => { if (l.id !== user.uid) logAct("a_del_letter", l.msg, { target: l.id, targetNick: l.nick }); }).catch(() => {}); c.appendChild(x); }
+    g.appendChild(c);
+  });
+}
+$("lform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = T[lang], st = $("lt_status"), btn = $("lt_send");
+  const nick = $("lt_nick").value.trim().slice(0, 24), msg = $("lt_msg").value.trim().slice(0, 200), from = $("lt_from").value;
+  if (!nick || !msg || !user) return;
+  if (checkText(nick, msg)) { st.textContent = t.blocked; return; }
+  btn.disabled = true; st.textContent = "";
+  try { await setDoc(doc(db, "yangmal_letters", user.uid), { nick, msg, from, at: serverTimestamp() }); st.textContent = t.letter_thanks; logAct("letter", msg, { nick, from }); bark($("pupbig"), $("barkbubble")); }
+  catch (err) { st.textContent = t.fail; }
+  btn.disabled = false;
+});
+$("lt_print").addEventListener("click", () => {
+  document.body.classList.add("printletters");
+  const done = () => { document.body.classList.remove("printletters"); removeEventListener("afterprint", done); };
+  addEventListener("afterprint", done); setTimeout(() => window.print(), 100);
+});
+// 관리자: 양말이 영상 추가
+$("dvform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const st = $("dv_status"), url = $("dv_url").value.trim();
+  if (!parseVideo(url)) { st.textContent = T[lang].badurl; return; }
+  try { await addDoc(collection(db, "yangmal_videos"), { url, at: serverTimestamp() }); st.textContent = "추가했어요 🐾"; $("dv_url").value = ""; logAct("a_add_diary", "영상 " + url); }
+  catch (err) { st.textContent = T[lang].fail; }
+});
+// 관리자: 다이어리 사진 추가
+let dyData = null;
+$("dy_date").value = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+$("dy_file").addEventListener("change", async () => {
+  const f = $("dy_file").files[0], st = $("dy_status"); dyData = null; $("dy_preview").hidden = true; if (!f) return;
+  st.textContent = T[lang].up_busy;
+  try {
+    let src = f; if (/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name)) src = await heicToJpeg(f);
+    const im = await loadImage(src);
+    dyData = { img: shrink(im, 1200, false, 420000), thumb: shrink(im, 420, true, 70000) };
+    $("dy_img").src = dyData.thumb; $("dy_preview").hidden = false; st.textContent = "";
+  } catch (e) { st.textContent = T[lang].up_bad; }
+});
+$("dyform").addEventListener("submit", async e => {
+  e.preventDefault();
+  const st = $("dy_status"), btn = $("dy_add");
+  if (!isAdmin || !dyData) { st.textContent = T[lang].up_bad; return; }
+  const cap = $("dy_cap").value.trim().slice(0, 80), date = $("dy_date").value || "";
+  btn.disabled = true;
+  try {
+    const ref = await addDoc(collection(db, "yangmal_diary"), { thumb: dyData.thumb, cap, date, at: serverTimestamp() });
+    await setDoc(doc(db, "yangmal_full", ref.id), { img: dyData.img });
+    st.textContent = "추가했어요 🐾"; logAct("a_add_diary", cap); $("dy_file").value = ""; $("dy_cap").value = ""; $("dy_preview").hidden = true; dyData = null;
+  } catch (err) { st.textContent = T[lang].fail; }
+  btn.disabled = false;
+});
 
 /* ---------- 양말이 코너 ---------- */
 (function () {
@@ -1349,6 +1528,7 @@ function celebrateKind() {
   if (location.hash === "#birthday" || (m === 9 && d === 11)) return { k: "bday" };
   if (location.hash === "#debut" || (m === 11 && d === 4)) return { k: "debut", n: n.getUTCFullYear() - 2020 };
   if (XMAS && m === 12 && (d === 24 || d === 25)) return { k: "xmas" };
+  if (location.hash === "#ymday" || (m === 11 && d === 6)) return { k: "ym" };
   return null;
 }
 let celebrated = false;
@@ -1358,13 +1538,13 @@ function renderCelebrate() {
   const c = celebrateKind();
   celebrate.hidden = !c;
   if (!c) return;
-  celebrate.textContent = c.k === "bday" ? X[lang].bday : c.k === "xmas" ? X[lang].xday : X[lang].debut(c.n);
-  if (!celebrated) { celebrated = true; setTimeout(confetti, 400); }
+  celebrate.textContent = c.k === "bday" ? X[lang].bday : c.k === "xmas" ? X[lang].xday : c.k === "ym" ? T[lang].ymday : X[lang].debut(c.n);
+  if (!celebrated) { celebrated = true; setTimeout(c.k === "ym" ? () => pawBurst(innerWidth / 2, innerHeight * .3, 60) : confetti, 400); }
 }
-celebrate.addEventListener("click", confetti);
+celebrate.addEventListener("click", () => { const c = celebrateKind(); if (c && c.k === "ym") pawBurst(innerWidth / 2, innerHeight * .3, 60); else confetti(); });
 
 /* ---------- 메뉴별 페이지 나누기 ---------- */
-const PAGES = ["profile", "schedule", "request", "music", "clips", "photos", "cheers", "links", "manage"];
+const PAGES = ["profile", "schedule", "request", "music", "clips", "photos", "dog", "cheers", "links", "manage"];
 const hero = document.querySelector(".hero");
 const mini = document.createElement("div"); mini.className = "minititle";
 mini.innerHTML = '<a href="#profile"><span class="mk">현모</span><span class="mr">HYUNMO</span></a>';
@@ -1381,6 +1561,7 @@ function route() {
   if (page === "photos") setTimeout(startPhotos, 0);
   if (page === "music") setTimeout(loadVotes, 0);
   if (page === "request") setTimeout(() => loadRequests(), 0);
+  if (page === "dog") setTimeout(startDog, 0);
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
   window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); if (firstRoute) setTimeout(() => window.scrollTo(0, 0), 300);

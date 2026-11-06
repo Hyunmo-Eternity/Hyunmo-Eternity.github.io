@@ -41,6 +41,7 @@
       <a href="#request" data-i="nav_req">신청곡</a>
       <a href="#clips" data-i="nav_clips">영상</a>
       <a href="#photos" data-i="nav_photos">사진</a>
+      <a href="#dog" data-i="nav_dog">양말이</a>
       <a href="#cheers" data-i="nav_cheers">응원</a>
       <a href="#links" data-i="nav_links">링크</a>
     </nav>
@@ -104,6 +105,7 @@
       <h3 data-i="ym_title">🐾 현모의 반려견, 양말이</h3>
       <p class="hint" data-i="ym_lede"></p>
       <div class="ymgrid" id="ym_grid"></div>
+      <a class="ymmore" href="#dog" data-i="ym_more">양말이 페이지 보러 가기 →</a>
     </div>
     <div class="quiz" id="quiz">
       <h3 data-i="qz_title">🌱 현모를 얼마나 알고 있나요?</h3>
@@ -246,6 +248,49 @@
     <img id="lbimg" alt="">
     <div class="lbinfo"><p id="lbcap"></p><small id="lbby"></small><button type="button" class="lbdel" id="lbdel" hidden></button></div>
   </dialog>
+
+  <section id="dog">
+    <div class="doghead">
+      <button type="button" class="pupbig" id="pupbig" aria-label="Yangmal"></button>
+      <div>
+        <h2 data-i="dog_title">양말이네 집</h2>
+        <p class="lede" data-i="dog_lede"></p>
+        <span class="barkbubble" id="barkbubble" hidden></span>
+      </div>
+    </div>
+
+    <h3 class="mh3" data-i="diary_title">📔 양말이 다이어리</h3>
+    <form class="clipf" id="dyform" hidden>
+      <label class="pick"><span>사진 (관리자)</span><input id="dy_file" type="file" accept="image/*" required></label>
+      <div class="uppreview" id="dy_preview" hidden><img id="dy_img" alt=""></div>
+      <div class="row">
+        <label><span>날짜</span><input id="dy_date" type="date"></label>
+        <label><span>한 줄 이야기</span><input id="dy_cap" maxlength="80" placeholder="예) 산책 다녀와서 꿀잠 자는 양말이"></label>
+      </div>
+      <div class="actions"><button class="go" type="submit" id="dy_add">다이어리에 추가</button><span class="status" id="dy_status" aria-live="polite"></span></div>
+    </form>
+    <ol class="diary" id="diary"></ol>
+
+    <h3 class="mh3" data-i="dyv_title">🎬 양말이 영상</h3>
+    <form class="clipf" id="dvform" hidden>
+      <label><span>영상 링크 (인스타그램 · 틱톡 · 유튜브)</span><input id="dv_url" type="url" inputmode="url" required placeholder="https://www.instagram.com/reel/…"></label>
+      <div class="actions"><button class="go" type="submit" id="dv_add">영상 추가</button><span class="status" id="dv_status" aria-live="polite"></span></div>
+    </form>
+    <div class="dyvideos" id="dyvideos"></div>
+
+    <h3 class="mh3" data-i="letters_title">💌 양말이에게 보내는 편지</h3>
+    <p class="hint" data-i="letters_lede"></p>
+    <form class="cheer" id="lform">
+      <div class="row">
+        <label><span data-i="l_nick">닉네임</span><input id="lt_nick" maxlength="24" required autocomplete="nickname"></label>
+        <label><span data-i="l_from">어디에서</span><select id="lt_from"></select></label>
+      </div>
+      <label><span data-i="l_letter">양말이에게 한마디</span><textarea id="lt_msg" maxlength="200" required></textarea></label>
+      <div class="actions"><button class="go" type="submit" id="lt_send" data-i="b_letter_send">편지 보내기</button><span class="status" id="lt_status" aria-live="polite"></span></div>
+    </form>
+    <div class="ltadmin" id="ltadmin" hidden><button type="button" class="go" id="lt_print">🖨 편지 모아 카드로 보기 (인쇄·PDF 저장)</button></div>
+    <div class="letters" id="letters"><div class="lthead">To. 양말이 🐾 <small>from fans around the world</small></div><div class="ltgrid" id="ltgrid"></div></div>
+  </section>
 
   <section id="cheers">
     <h2 data-i="cheers_title">응원 메시지</h2>
