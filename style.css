@@ -493,3 +493,14 @@ body.banned form.cheer,body.banned details.suggest{display:none!important}
 .rqadmin{background:var(--paper);border:2px dashed var(--leaf);border-radius:16px;padding:14px 16px;margin-bottom:16px;display:grid;gap:10px}
 .rqmsg{margin:0;white-space:pre-wrap;font:inherit;font-size:13px;background:var(--bg);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere}
 #request .vote{margin-bottom:16px}
+
+/* --- 방문자 통계 --- */
+.mvisits{display:grid;gap:12px;margin-bottom:8px}
+.mvisits h4{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.vchart{display:flex;align-items:flex-end;gap:6px;height:160px;padding:8px 6px 0;background:var(--bg);border-radius:14px;overflow-x:auto}
+.vcol{flex:1 0 28px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+.vbar{width:70%;max-width:26px;background:color-mix(in srgb,var(--leaf) 55%,transparent);border-radius:6px 6px 2px 2px}
+.vcol.today .vbar{background:var(--petal)}
+.vnum{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vday{font-size:10px;color:var(--muted);padding-bottom:6px;white-space:nowrap}
+.vcc li{grid-template-columns:minmax(0,11em) 1fr auto}

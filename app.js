@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
 import * as PL from "./music/playlist.js";
@@ -914,6 +914,81 @@ $("rq_form").addEventListener("submit", async e => {
   btn.disabled = false;
 });
 
+/* ---------- 방문자 통계 (브라우저마다 하루 한 번, 나라는 시간대로 추정) ---------- */
+const TZ_CC = {
+  "Asia/Seoul":"KR","Asia/Bangkok":"TH","Asia/Manila":"PH","Asia/Singapore":"SG","Asia/Tokyo":"JP","Asia/Jakarta":"ID","Asia/Makassar":"ID","Asia/Jayapura":"ID",
+  "Asia/Kuala_Lumpur":"MY","Asia/Kuching":"MY","Asia/Ho_Chi_Minh":"VN","Asia/Saigon":"VN","Asia/Shanghai":"CN","Asia/Chongqing":"CN","Asia/Taipei":"TW","Asia/Hong_Kong":"HK",
+  "Asia/Kolkata":"IN","Asia/Calcutta":"IN","Asia/Yangon":"MM","Asia/Phnom_Penh":"KH","Asia/Vientiane":"LA","Asia/Dubai":"AE",
+  "Australia/Sydney":"AU","Australia/Melbourne":"AU","Australia/Brisbane":"AU","Australia/Perth":"AU","Pacific/Auckland":"NZ",
+  "Europe/London":"GB","Europe/Madrid":"ES","Europe/Paris":"FR","Europe/Berlin":"DE","Europe/Rome":"IT","Europe/Amsterdam":"NL",
+  "America/Toronto":"CA","America/Vancouver":"CA","America/Mexico_City":"MX","America/Sao_Paulo":"BR","America/Argentina/Buenos_Aires":"AR",
+  "America/Bogota":"CO","America/Lima":"PE","America/Santiago":"CL",
+};
+function visitCountry() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  if (TZ_CC[tz]) return TZ_CC[tz];
+  if (/^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Indiana|Kentucky|Boise)/.test(tz) || tz === "Pacific/Honolulu") return "US";
+  return "XX";
+}
+const flagOf = cc => cc && cc !== "XX" ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "🌏";
+async function countVisit() {
+  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  try { if (localStorage.getItem("hm_visit") === day) return; } catch (e) {}
+  const waitUser = () => new Promise(ok => { const t = setInterval(() => { if (user) { clearInterval(t); ok(); } }, 300); setTimeout(() => { clearInterval(t); ok(); }, 8000); });
+  await waitUser(); if (!user) return;
+  try {
+    await setDoc(doc(db, "visits", day), { total: increment(1), [visitCountry()]: increment(1) }, { merge: true });
+    try { localStorage.setItem("hm_visit", day); } catch (e) {}
+  } catch (e) {}
+}
+let visitDays = null, unsubVisits = null;
+function watchVisits() {
+  if (unsubVisits) return;
+  unsubVisits = onSnapshot(query(collection(db, "visits"), orderBy(documentId(), "desc"), limit(30)), snap => {
+    visitDays = snap.docs.map(d => ({ day: d.id, ...d.data() })).reverse(); renderVisits();
+  }, () => { visitDays = []; renderVisits(); });
+}
+function renderVisits() {
+  const box = $("m_visits"); if (!box || !isAdmin) return;
+  box.textContent = "";
+  if (!visitDays) { box.innerHTML = '<p class="hint">불러오는 중…</p>'; return; }
+  if (!visitDays.length) { box.innerHTML = '<p class="hint">아직 방문 기록이 없어요. 이번 업데이트 이후 방문부터 쌓여요.</p>'; return; }
+  const last14 = visitDays.slice(-14), max = Math.max(1, ...last14.map(d => d.total || 0));
+  const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const sum = (arr, k) => arr.reduce((a, d) => a + (d[k] || 0), 0);
+  const last7 = visitDays.slice(-7);
+  const head = document.createElement("div"); head.className = "mstats";
+  [["오늘 방문", (visitDays.find(d => d.day === today) || {}).total || 0], ["최근 7일", sum(last7, "total")], ["최근 30일", sum(visitDays, "total")]].forEach(([l, n]) => {
+    const d = document.createElement("div"); const b = document.createElement("b"); b.textContent = n.toLocaleString(); const sm = document.createElement("small"); sm.textContent = l; d.append(b, sm); head.appendChild(d);
+  });
+  // 날짜별 막대
+  const chart = document.createElement("div"); chart.className = "vchart"; chart.setAttribute("role", "img"); chart.setAttribute("aria-label", "최근 14일 방문자 수");
+  last14.forEach(d => {
+    const col = document.createElement("div"); col.className = "vcol" + (d.day === today ? " today" : "");
+    const n = document.createElement("span"); n.className = "vnum"; n.textContent = d.total || 0;
+    const bar = document.createElement("span"); bar.className = "vbar"; bar.style.height = Math.max(3, (d.total || 0) / max * 100) + "%";
+    const lb = document.createElement("span"); lb.className = "vday"; lb.textContent = d.day.slice(5).replace("-", "/");
+    col.append(n, bar, lb); chart.appendChild(col);
+  });
+  // 나라별 (최근 30일)
+  const cc = {};
+  visitDays.forEach(d => Object.entries(d).forEach(([k, v]) => { if (k !== "day" && k !== "total" && typeof v === "number") cc[k] = (cc[k] || 0) + v; }));
+  const rows = Object.entries(cc).sort((a, b) => b[1] - a[1]), all = rows.reduce((a, [, n]) => a + n, 0) || 1;
+  const list = document.createElement("ol"); list.className = "hboard vcc";
+  const name = c => { if (c === "XX") return "기타·알 수 없음"; try { return new Intl.DisplayNames(["ko"], { type: "region" }).of(c); } catch (e) { return c; } };
+  rows.slice(0, 12).forEach(([c, n]) => {
+    const li = document.createElement("li");
+    const a = document.createElement("span"); a.className = "hn"; a.textContent = `${flagOf(c)} ${name(c)}`;
+    const b = document.createElement("span"); b.className = "hbar"; b.style.setProperty("--w", Math.max(3, n / rows[0][1] * 100) + "%");
+    const t = document.createElement("span"); t.className = "hc"; t.textContent = `${n.toLocaleString()} (${Math.round(n / all * 100)}%)`;
+    li.append(a, b, t); list.appendChild(li);
+  });
+  const h1 = document.createElement("h4"); h1.textContent = "최근 14일 방문자";
+  const h2 = document.createElement("h4"); h2.textContent = "나라별 방문자 (최근 30일)";
+  const note = document.createElement("p"); note.className = "hint"; note.textContent = "같은 브라우저는 하루에 한 번만 셉니다. 나라는 방문자 기기의 시간대로 추정해요.";
+  box.append(head, h1, chart, h2, list, note);
+}
+
 /* ---------- 활동 기록 + 이용 제한 ---------- */
 const ACT = {
   cheer: "💌 응원 작성", cheer_edit: "✏️ 응원 수정", cheer_del: "🗑 응원 삭제(본인)", video: "🎬 영상 추천", photo: "📷 사진 올림", event: "📢 일정 제보", vote: "🏆 투표",
@@ -944,6 +1019,7 @@ function watchActivity() {
     acts = snap.docs.map(d => { const v = d.data({ serverTimestamps: "estimate" }); return { id: d.id, ...v, at: v.at?.toDate?.() || null }; });
     renderManage();
   }, () => { acts = []; renderManage(); });
+  watchVisits();
   unsubBan = onSnapshot(collection(db, "banned"), snap => { banned = snap.docs.map(d => ({ uid: d.id, ...d.data() })); renderManage(); }, () => {});
 }
 const shortId = u => u ? u.slice(0, 6) : "—";
@@ -1275,7 +1351,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
   }, () => { clips = []; renderClips(); });
-  watchHearts(); watchEvents();
+  watchHearts(); watchEvents(); countVisit();
   onSnapshot(doc(db, "status", "live"), d => { live = d.exists() ? d.data() : null; renderLive(); }, () => {});
 
   // 방문자는 보이지 않게 익명 로그인 → 로그인 화면 없이 응원 메시지를 쓸 수 있어요
