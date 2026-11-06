@@ -488,13 +488,18 @@ $("upform").addEventListener("submit", async e => {
 
 /* ---------- 공통: 나라 이름 ---------- */
 const COUNTRIES = ["KR", "TH", "SG", "PH", "US", "JP", "ID", "MY", "VN", "XX"];
+// 하트 보내기에서 고를 수 있는 전 세계 나라 (위쪽은 팬이 많은 나라)
+const TOP_CC = ["KR", "TH", "PH", "SG", "US", "JP", "ID", "MY", "VN"];
+const ALL_CC = "AD AE AF AG AL AM AO AR AT AU AZ BA BB BD BE BF BG BH BI BJ BN BO BR BS BT BW BY BZ CA CD CF CG CH CI CL CM CN CO CR CU CV CY CZ DE DJ DK DM DO DZ EC EE EG ER ES ET FI FJ FM FR GA GB GD GE GH GM GN GQ GR GT GW GY HK HN HR HT HU ID IE IL IN IQ IR IS IT JM JO JP KE KG KH KI KM KN KP KR KW KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MG MH MK ML MM MN MO MR MT MU MV MW MX MY MZ NA NE NG NI NL NO NP NR NZ OM PA PE PG PH PK PL PR PS PT PW PY QA RO RS RU RW SA SB SC SD SE SG SI SK SL SM SN SO SR SS ST SV SY SZ TD TG TH TJ TL TM TN TO TR TT TV TW TZ UA UG US UY UZ VA VC VE VN VU WS YE ZA ZM ZW".split(" ");
 function countryName(cc) {
   if (cc === "XX") return { ko: "기타", en: "Other", th: "อื่น ๆ", ja: "その他", zh: "其他", fil: "Iba pa", es: "Otro" }[lang];
   try { return new Intl.DisplayNames([lang], { type: "region" }).of(cc); } catch (e) { return cc; }
 }
 function guessCountry() {
   const m = /-([A-Z]{2})$/i.exec(navigator.language || ""); const cc = m ? m[1].toUpperCase() : "";
-  return COUNTRIES.includes(cc) ? cc : ({ ko: "KR", th: "TH", ja: "JP", fil: "PH", tl: "PH" }[(navigator.language || "").slice(0, 2)] || "XX");
+  if (ALL_CC.includes(cc)) return cc;
+  const tzc = typeof visitCountry === "function" ? visitCountry() : "XX";
+  return tzc !== "XX" ? tzc : ({ ko: "KR", th: "TH", ja: "JP", fil: "PH", tl: "PH", es: "ES", zh: "CN" }[(navigator.language || "").slice(0, 2)] || "KR");
 }
 
 /* ---------- 전 세계 하트 보내기 ---------- */
@@ -502,17 +507,24 @@ let hearts = {}, heartQueue = 0, heartTimer = null;
 let myCountry = (() => { try { return localStorage.getItem("hm_cc") || ""; } catch (e) { return ""; } })() || guessCountry();
 function renderHearts() {
   const sel = $("h_from"), cur = sel.value || myCountry;
-  sel.textContent = "";
-  COUNTRIES.forEach(cc => { const o = document.createElement("option"); o.value = cc; o.textContent = `${FLAG[cc]} ${countryName(cc)}`; sel.appendChild(o); });
-  sel.value = cur;
+  if (sel.dataset.lang !== lang) {
+    sel.textContent = ""; sel.dataset.lang = lang;
+    const opt = cc => { const o = document.createElement("option"); o.value = cc; o.textContent = `${flagOf(cc)} ${countryName(cc)}`; return o; };
+    const g1 = document.createElement("optgroup"); g1.label = "⭐"; TOP_CC.forEach(cc => g1.appendChild(opt(cc)));
+    const g2 = document.createElement("optgroup"); g2.label = "🌍";
+    const coll = new Intl.Collator(lang);
+    ALL_CC.filter(cc => !TOP_CC.includes(cc)).sort((a, b) => coll.compare(countryName(a), countryName(b))).forEach(cc => g2.appendChild(opt(cc)));
+    sel.append(g1, g2);
+  }
+  sel.value = ALL_CC.includes(cur) ? cur : "KR";
   const rows = Object.entries(hearts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((s, [, n]) => s + n, 0) + heartQueue;
   $("h_total").textContent = total.toLocaleString();
   const board = $("h_board"); board.textContent = "";
   const max = rows.length ? rows[0][1] : 1;
-  rows.slice(0, 5).forEach(([cc, n]) => {
+  rows.slice(0, 7).forEach(([cc, n]) => {
     const li = document.createElement("li");
-    const name = document.createElement("span"); name.className = "hn"; name.textContent = `${FLAG[cc] || "🌏"} ${countryName(cc)}`;
+    const name = document.createElement("span"); name.className = "hn"; name.textContent = `${flagOf(cc)} ${countryName(cc)}`;
     const bar = document.createElement("span"); bar.className = "hbar"; bar.style.setProperty("--w", Math.max(4, n / max * 100) + "%");
     const num = document.createElement("span"); num.className = "hc"; num.textContent = n.toLocaleString();
     li.append(name, bar, num); board.appendChild(li);
@@ -947,7 +959,7 @@ function visitCountry() {
   if (/^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Indiana|Kentucky|Boise)/.test(tz) || tz === "Pacific/Honolulu") return "US";
   return "XX";
 }
-const flagOf = cc => cc && cc !== "XX" ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "🌏";
+function flagOf(cc) { return cc && cc !== "XX" ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "🌏"; }
 async function countVisit() {
   const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   try { if (localStorage.getItem("hm_visit") === day) return; } catch (e) {}
