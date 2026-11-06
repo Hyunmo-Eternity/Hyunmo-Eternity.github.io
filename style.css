@@ -732,3 +732,26 @@ html,body{overflow-x:clip}
 /* 양말이 영상 */
 .dyvideos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:8px}
 .dyvideos .clip{background:var(--paper)}
+
+/* --- 양말이 오늘의 한마디 --- */
+.hope{margin:4px 0 18px;padding:18px 20px 14px;border-radius:20px;position:relative;display:grid;gap:8px;
+  background:linear-gradient(135deg,#FFF8EC,#FDEBEF);color:#4A3A30;box-shadow:0 6px 20px rgba(168,100,47,.14)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hope{background:linear-gradient(135deg,#2C2219,#2A1A20);color:#F3E6DA}}
+:root[data-theme="dark"] .hope{background:linear-gradient(135deg,#2C2219,#2A1A20);color:#F3E6DA}
+.hope-ico{position:absolute;right:16px;top:-14px;font-size:26px}
+.hope blockquote{margin:0;font-family:var(--f-display);font-size:clamp(17px,4.4vw,21px);line-height:1.6;text-wrap:balance}
+.hope blockquote::before{content:"“";color:#C07A3E;font-size:1.4em;margin-right:2px}
+.hope blockquote::after{content:"”";color:#C07A3E;font-size:1.4em;margin-left:2px}
+.hope figcaption{font-size:13px;color:#A8642F;font-weight:700}
+.hope-next{font:inherit;font-weight:400;background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.hope blockquote.fade{animation:hopein .6s ease-out}@keyframes hopein{from{opacity:0;transform:translateY(6px)}}}
+/* 눈사람을 누르면 튀어나오는 현모 사진 */
+.smpop{position:absolute;left:50%;bottom:96px;z-index:5;margin:0 0 0 -62px;width:124px;background:#fff;padding:5px;border-radius:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,.25);transform:translateY(50px) scale(.2) rotate(6deg);opacity:0;pointer-events:none;
+  transition:transform .5s cubic-bezier(.3,1.7,.5,1),opacity .3s}
+.smpop.show{transform:translateY(0) scale(1) rotate(3deg);opacity:1}
+.smpop img{width:100%;aspect-ratio:4/5;max-width:100%;object-fit:cover;border-radius:6px;display:block}
+.smpop::after{content:"❄";position:absolute;right:-8px;top:-10px;font-size:18px}
+.xscene{height:230px}
+.xbubble{bottom:150px!important;margin-left:68px!important;white-space:normal!important;max-width:130px;text-align:center;word-break:keep-all}
+.smpop{bottom:66px}

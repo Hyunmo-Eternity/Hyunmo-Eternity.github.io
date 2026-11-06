@@ -12,8 +12,9 @@ const PLAYLIST = (() => {
 })();
 const AUTO_START = PL.AUTO_START !== false;
 import * as PH from "./photos.js";
-const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [];
+const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
 import { QUIZ } from "./quiz.js";
+import { HOPE } from "./hope.js";
 import { checkText } from "./filter.js";
 import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js";
 import * as TH from "./theme.js";
@@ -1349,8 +1350,17 @@ function startDog() {
     renderDog();
   }, () => { letters = []; renderDog(); });
 }
+let hopeIdx = null;
+function renderHope() {
+  const list = HOPE[lang] || HOPE.en;
+  if (hopeIdx === null) { const day = Math.floor((Date.now() + 9 * 3600e3) / 864e5); hopeIdx = day % list.length; } // 날마다 다른 글
+  const q = $("hope_text"); q.textContent = list[hopeIdx % list.length];
+  q.classList.remove("fade"); void q.offsetWidth; q.classList.add("fade");
+}
+$("hope_next").addEventListener("click", () => { hopeIdx = (hopeIdx || 0) + 1; renderHope(); });
 function renderDog() {
   const t = T[lang];
+  renderHope();
   $("dyform").hidden = !isAdmin; $("ltadmin").hidden = !isAdmin || !(letters || []).length;
   if (mine && !$("lt_nick").value) $("lt_nick").value = mine.nick || "";
   $("lt_send").textContent = myLetter ? t.b_letter_edit : t.b_letter_send;
@@ -1496,7 +1506,14 @@ if (XMAS) {
     <span class="xhill"></span>`;
   document.querySelector(".hero .counts").after(scene);
   const bubble = scene.querySelector(".xbubble");
+  let smIdx = Math.floor(Math.random() * Math.max(1, SNOWMAN_PHOTOS.length));
   scene.querySelector(".xsnowman").addEventListener("click", () => {
+    if (SNOWMAN_PHOTOS.length) {
+      const pop = scene.querySelector(".smpop") || Object.assign(document.createElement("figure"), { className: "smpop" });
+      pop.innerHTML = ""; const im = document.createElement("img"); im.src = SNOWMAN_PHOTOS[smIdx++ % SNOWMAN_PHOTOS.length]; im.alt = "현모";
+      pop.appendChild(im); scene.appendChild(pop); pop.classList.remove("show"); void pop.offsetWidth; pop.classList.add("show");
+      clearTimeout(pop._t); pop._t = setTimeout(() => pop.classList.remove("show"), 3000);
+    }
     bubble.textContent = X[lang].xsay; bubble.hidden = false;
     scene.classList.remove("hop"); void scene.offsetWidth; scene.classList.add("hop");
     clearTimeout(bubble._t); bubble._t = setTimeout(() => { bubble.hidden = true; }, 2600);

@@ -39,3 +39,7 @@ export const YANGMAL_VIDEOS = [
   "https://www.tiktok.com/@hyunmomo/video/7505309027778235656",
   "https://www.instagram.com/whyunmo/reel/BUWbmYvl78m/",
 ];
+
+// 첫 화면 눈사람을 누르면 튀어나오는 현모 사진 (비어 있으면 첫 화면 사진 중에서 골라요)
+export const SNOWMAN_PHOTOS = [
+];
