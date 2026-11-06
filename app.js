@@ -4,7 +4,12 @@ import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDo
 import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js";
 import { T, DISC } from "./i18n.js";
 import * as PL from "./music/playlist.js";
-const PLAYLIST = PL.PLAYLIST || [];
+// 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
+const PLAYLIST = (() => {
+  const list = [...(PL.PLAYLIST || [])];
+  if (PL.SHUFFLE !== false) for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+  return list;
+})();
 const AUTO_START = PL.AUTO_START !== false;
 import { PHOTOS, PHOTO_SECONDS } from "./photos.js";
 import { QUIZ } from "./quiz.js";
@@ -575,6 +580,18 @@ function renderEvents() {
   };
   up.forEach(ev => add(ev, false));
   if (past.length) { const h = document.createElement("li"); h.className = "evsep"; h.textContent = t.past; list.appendChild(h); past.forEach(ev => add(ev, true)); }
+  // 24시간 안에 라이브 일정이 있으면 모든 페이지 위쪽에 예고 띠를 보여줘요 (라이브 중일 땐 숨겨요)
+  const soon = up.find(e => e.kind === "live" && e.when - now < 864e5 && e.when + 2 * 3600e3 > now), sl = $("soonlive");
+  sl.hidden = !soon || isLive();
+  if (soon && !sl.hidden) {
+    const ms = soon.when - now, hh = Math.floor(ms / 36e5), mm = Math.max(0, Math.floor(ms % 36e5 / 6e4));
+    sl.textContent = "";
+    const a1 = document.createElement("b"); a1.textContent = `🔴 ${t.k_live} · ${fmtWhen(soon.when, myTz)}`;
+    const a2 = document.createElement("span"); a2.textContent = ms <= 0 ? t.d_now : `${t.next_up} ${hh ? hh + t.d_hours + " " : ""}${mm}${t.d_min}`;
+    const a3 = document.createElement("small"); a3.textContent = soon.title;
+    sl.append(a1, a2, a3);
+    if (soon.link) { sl.href = soon.link; sl.target = "_blank"; sl.rel = "noopener"; } else { sl.href = "#schedule"; sl.removeAttribute("target"); }
+  }
   // 다음 일정까지 남은 시간
   const nx = up[0], box = $("nextup");
   box.hidden = !nx;
@@ -1103,6 +1120,7 @@ function renderLive() {
   const on = isLive(), t = T[lang];
   document.body.classList.toggle("is-live", on);
   const box = $("live"); box.hidden = !on;
+  if (on) $("soonlive").hidden = true; else if (typeof renderEvents === "function" && events) renderEvents();
   if (on) {
     $("livego").href = live.url; $("livepill").href = live.url;
     if (!box.querySelector(".spk")) for (let i = 0; i < 14; i++) {
