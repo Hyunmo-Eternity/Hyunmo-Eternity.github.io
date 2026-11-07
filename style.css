@@ -799,3 +799,50 @@ html,body{overflow-x:clip}
 .gopt.no{background:var(--petal-soft);border-color:var(--petal)}
 :root.xmas #games{background:linear-gradient(180deg,var(--t-sky),var(--t-mint))}
 @media (prefers-reduced-motion:reduce){.mcard > span{transition:none}.gwave.on i{animation:none}}
+
+/* 모모 더비 */
+.gdplaces{margin:0;font-size:12px;color:var(--muted)}
+.gdmsg{margin:0;font-family:var(--f-display);font-size:22px;font-weight:700;min-height:1.4em}
+.dtrack{width:100%;display:grid;gap:6px;padding:10px;border-radius:20px;
+  background:repeating-linear-gradient(90deg,color-mix(in srgb,#7CB66B 55%,var(--paper)) 0 40px,color-mix(in srgb,#7CB66B 45%,var(--paper)) 40px 80px);box-shadow:inset 0 0 0 1px var(--line)}
+.dlane{--x:0;position:relative;height:48px;border:0;border-radius:12px;font:inherit;color:var(--ink);cursor:pointer;
+  background:color-mix(in srgb,var(--paper) 72%,transparent);border-left:6px solid var(--c);text-align:left;overflow:hidden;padding:0}
+.dlane:disabled{cursor:default}
+.dlane:not(:disabled):hover{background:var(--paper)}
+.dlane.mine{box-shadow:0 0 0 3px var(--c);background:var(--paper)}
+.dnum{position:absolute;left:6px;top:4px;font-size:11px;font-weight:700;color:var(--c)}
+.dname{position:absolute;left:20px;right:40px;bottom:3px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dflag{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:18px}
+.dhorse{position:absolute;top:2px;left:calc(var(--x) * (100% - 64px) + 14px);font-size:30px;line-height:1}
+.dhorse > span{display:inline-block;transform:scaleX(-1)}
+.dlane.run .dhorse > span{animation:gallop .28s ease-in-out infinite alternate}
+.dhorse.kick{animation:kick .18s}
+@keyframes gallop{to{transform:scaleX(-1) translateY(-4px) rotate(4deg)}}
+@keyframes kick{50%{transform:scale(1.18)}}
+.gdrun{font-size:22px;padding:16px 46px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.gdres{margin:0;font-size:13px;color:var(--muted);word-break:keep-all}
+@media (prefers-reduced-motion:reduce){.dlane.run .dhorse > span{animation:none}}
+.gleft{margin:0;font-size:13px;font-weight:700;color:var(--petal)}
+/* 게임 아이디 · 주간 하트 · 메달 */
+.gid{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;justify-content:center;margin:0 0 12px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--paper) 80%,transparent)}
+.gid label{display:grid;gap:2px;font-size:12px;color:var(--muted);min-width:0}
+.gid input,.gid select{font:inherit;font-size:15px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);max-width:12em}
+.gnickmsg{flex-basis:100%;text-align:center;color:var(--petal);font-weight:700;min-height:0}
+.gnickmsg:empty{display:none}
+.gid .gleft{flex-basis:100%;text-align:center}
+.gleft.done{color:var(--muted)}
+.hweek,.hmedal{width:100%;display:grid;gap:6px;margin-top:12px;text-align:left}
+.hwhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
+.hwhead small,.hwrule{color:var(--muted);font-size:12px}
+.hwlast{margin:0;font-size:13px;font-weight:700}
+.medals{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.medals li{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.medals .mn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.medals .mc{white-space:nowrap;font-variant-numeric:tabular-nums}
+/* 아이폰 메모리 절약: 무거운 흐림 효과를 가볍게 */
+:root.ios .bar{backdrop-filter:none;background:var(--sky1,var(--bg))}
+:root.ios .photobg .bgimg{inset:-20px;filter:blur(14px) saturate(1.15)}
+:root.ios .player{backdrop-filter:none;background:var(--paper)}
+/* 영상 추천: 맨 위 안내 */
+.sgnote{margin:4px 0 8px;padding:12px 14px;border-radius:14px;background:var(--petal-soft);color:var(--ink);font-weight:700;font-size:14px;line-height:1.5}
+#clips .suggest{margin-bottom:16px}

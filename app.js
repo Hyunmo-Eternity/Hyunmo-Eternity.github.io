@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611070422";
-import { T, DISC } from "./i18n.js?v=202611070422";
-import * as PL from "./music/playlist.js?v=202611070422";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611072323";
+import { T, DISC } from "./i18n.js?v=202611072323";
+import * as PL from "./music/playlist.js?v=202611072323";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,14 +11,16 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611070422";
+import * as PH from "./photos.js?v=202611072323";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611070422";
-import { HOPE } from "./hope.js?v=202611070422";
-import { checkText } from "./filter.js?v=202611070422";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611070422";
-import * as TH from "./theme.js?v=202611070422";
-import * as GM from "./games.js?v=202611070422";
+import { QUIZ } from "./quiz.js?v=202611072323";
+import { HOPE } from "./hope.js?v=202611072323";
+import { checkText } from "./filter.js?v=202611072323";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611072323";
+import * as TH from "./theme.js?v=202611072323";
+import * as GM from "./games.js?v=202611072323";
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (IOS) document.documentElement.classList.add("ios");
 // 크리스마스 테마 켜기 (theme.js 에서 바꿔요)
 const XMAS = (() => { const t = TH.THEME || "flower", m = new Date(Date.now() + 9 * 3600e3).getUTCMonth() + 1; return t === "christmas" || (t === "auto" && m === 12); })();
 if (XMAS) document.documentElement.classList.add("xmas");
@@ -211,6 +213,16 @@ function renderChips() {
     chips.appendChild(b);
   }
 }
+// 아이폰 메모리 절약: 지금 보고 있는 페이지의 영상만 불러오고, 다른 페이지 영상은 잠시 내려놔요
+let parkT = 0;
+function queuePark() { clearTimeout(parkT); parkT = setTimeout(parkFrames, 0); }
+function parkFrames() {
+  document.querySelectorAll("iframe.embed").forEach(f => {
+    const show = !f.closest("section[hidden]");
+    if (show && !f.getAttribute("src") && f.dataset.src) f.src = f.dataset.src;
+    if (!show && f.getAttribute("src")) { f.dataset.src = f.getAttribute("src"); f.removeAttribute("src"); f.dataset.active = ""; }
+  });
+}
 function renderClips() {
   const box = $("cliplist"), t = T[lang]; box.textContent = "";
   $("curl").placeholder = "https://www.youtube.com/watch?v=…  ·  tiktok.com/@…/video/…  ·  instagram.com/reel/…";
@@ -225,7 +237,7 @@ function renderClips() {
     if (v.embed) {
       const f = document.createElement("iframe");
       f.className = "embed" + (v.tall ? "" : " landscape") + (v.insta ? " insta" : ""); f.loading = "lazy"; f.title = c.song;
-      f.src = v.embed; f.dataset.p = v.p;
+      f.dataset.src = v.embed; queuePark(); f.dataset.p = v.p;
       if (v.p === "youtube") f.addEventListener("load", () => { try { f.contentWindow.postMessage(JSON.stringify({ event: "listening", id: c.id }), "*"); } catch (e) {} });
       f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay";
       f.referrerPolicy = "strict-origin-when-cross-origin";
@@ -299,7 +311,8 @@ sgBox.innerHTML = `<summary></summary>
     </div>
     <div class="actions"><button class="go" type="submit" id="sg_send"></button><span class="status" id="sg_status" aria-live="polite"></span></div>
   </form>`;
-$("cliplist").after(sgBox);
+const sgNote = document.createElement("p"); sgNote.className = "sgnote";
+$("cliplist").before(sgNote, sgBox);
 const pendBox = document.createElement("div"); pendBox.className = "pending"; pendBox.hidden = true;
 $("clipform").after(pendBox);
 function renderSuggest() {
@@ -307,7 +320,8 @@ function renderSuggest() {
   sgBox.querySelector("summary").textContent = "💌 " + t.sg_open;
   sgBox.querySelectorAll("[data-k]").forEach(el => el.textContent = t[el.dataset.k]);
   $("sg_send").textContent = t.sg_send;
-  sgBox.hidden = isAdmin;
+  sgBox.hidden = isAdmin; sgNote.hidden = isAdmin;
+  sgNote.textContent = "📣 " + t.sg_anyone;
   if (mine && !$("sg_nick").value) { $("sg_nick").value = mine.nick || ""; $("sg_from").value = mine.from || "XX"; }
   // 관리자: 승인 대기 목록
   pendBox.hidden = !isAdmin || !pending.length;
@@ -547,14 +561,34 @@ function renderHearts() {
   const rows = Object.entries(hearts).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((s, [, n]) => s + n, 0) + heartQueue;
   $("h_total").textContent = total.toLocaleString();
+  const t = T[lang], MED = ["🥇", "🥈", "🥉"];
   const board = $("h_board"); board.textContent = "";
-  const max = rows.length ? rows[0][1] : 1;
-  rows.slice(0, 7).forEach(([cc, n]) => {
+  const wk = Object.entries(heartsWeek).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  const ms = weekStart(1) - Date.now(), d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5);
+  $("hw_title").textContent = "🏆 " + t.hw_title;
+  $("hw_left").textContent = t.hw_left.replace("{d}", d).replace("{h}", h);
+  $("hw_rule").textContent = t.hw_rule;
+  if (!wk.length) { const li = document.createElement("li"); li.className = "gempty"; li.textContent = t.hw_empty; board.appendChild(li); }
+  const max = wk.length ? wk[0][1] : 1;
+  wk.slice(0, 7).forEach(([cc, n], i) => {
     const li = document.createElement("li");
-    const name = document.createElement("span"); name.className = "hn"; name.textContent = `${flagOf(cc)} ${countryName(cc)}`;
+    const name = document.createElement("span"); name.className = "hn"; name.textContent = `${MED[i] || (i + 1) + "."} ${flagOf(cc)} ${countryName(cc)}`;
     const bar = document.createElement("span"); bar.className = "hbar"; bar.style.setProperty("--w", Math.max(4, n / max * 100) + "%");
     const num = document.createElement("span"); num.className = "hc"; num.textContent = n.toLocaleString();
     li.append(name, bar, num); board.appendChild(li);
+  });
+  const last = (weekResults || {})[weekId(-1)];
+  $("hw_last").hidden = !last;
+  if (last) $("hw_last").textContent = `${t.hw_last}: ` + last.map((cc, i) => `${MED[i]} ${flagOf(cc)} ${countryName(cc)}`).join("  ");
+  $("medal_title").textContent = "🏅 " + t.medal_title;
+  const mt = $("medals"); mt.textContent = "";
+  const mrows = medalTable();
+  if (!mrows.length) { const li = document.createElement("li"); li.className = "gempty"; li.textContent = t.medal_empty; mt.appendChild(li); }
+  mrows.slice(0, 10).forEach(([cc, [g1, g2, g3]], i) => {
+    const li = document.createElement("li");
+    const name = document.createElement("span"); name.className = "mn"; name.textContent = `${i + 1}. ${flagOf(cc)} ${countryName(cc)}`;
+    const c = document.createElement("span"); c.className = "mc"; c.textContent = `🥇${g1}  🥈${g2}  🥉${g3}`;
+    li.append(name, c); mt.appendChild(li);
   });
 }
 $("h_from").addEventListener("change", () => { myCountry = $("h_from").value; try { localStorage.setItem("hm_cc", myCountry); } catch (e) {} });
@@ -573,13 +607,46 @@ $("heartbtn").addEventListener("click", e => {
 async function flushHearts() {
   if (!heartQueue || !db || !user) return;
   const n = heartQueue, cc = myCountry; heartQueue = 0;
-  try { await setDoc(doc(db, "hearts", cc), { n: increment(n) }, { merge: true }); }
+  try { await addHeartsTo(cc, n); }
   catch (e) { renderHearts(); }
 }
+// 하트는 전체 기록(hearts)과 이번 주 기록(hearts_week)에 같이 쌓여요
+async function addHeartsTo(cc, n) {
+  if (!db || !user) throw new Error("offline");
+  const W = weekId(0);
+  await Promise.all([
+    setDoc(doc(db, "hearts", cc), { n: increment(n) }, { merge: true }),
+    setDoc(doc(db, "hearts_week", `${W}_${cc}`), { n: increment(n), w: W, cc }, { merge: true }),
+  ]);
+}
+let heartsWeek = {}, weekResults = null, settling = false;
 function watchHearts() {
   onSnapshot(collection(db, "hearts"), snap => {
     hearts = {}; snap.docs.forEach(d => { const n = d.data().n; if (typeof n === "number") hearts[d.id] = n; }); renderHearts();
   }, () => {});
+  onSnapshot(query(collection(db, "hearts_week"), where("w", "==", weekId(0))), snap => {
+    heartsWeek = {}; snap.docs.forEach(d => { const x = d.data(); if (typeof x.n === "number" && x.cc) heartsWeek[x.cc] = x.n; }); renderHearts();
+  }, () => {});
+  onSnapshot(collection(db, "week_results"), snap => {
+    weekResults = {}; snap.docs.forEach(d => { const x = d.data(); if (Array.isArray(x.top)) weekResults[d.id] = x.top; });
+    renderHearts(); settleLastWeek();
+  }, () => {});
+}
+// 지난주 정산: 아직 결과가 없으면 지난주 하트 1·2·3등 나라를 메달로 기록해요 (처음 들어온 사람이 한 번만)
+async function settleLastWeek() {
+  const LW = weekId(-1);
+  if (settling || !weekResults || weekResults[LW] || !db || !user) return;
+  settling = true;
+  try {
+    const snap = await getDocs(query(collection(db, "hearts_week"), where("w", "==", LW)));
+    const top = snap.docs.map(d => d.data()).filter(x => x.n > 0 && x.cc).sort((a, b) => b.n - a.n).slice(0, 3).map(x => x.cc);
+    if (top.length) await setDoc(doc(db, "week_results", LW), { top, at: serverTimestamp() });
+  } catch (e) {}
+}
+function medalTable() {
+  const m = {};
+  Object.values(weekResults || {}).forEach(top => top.forEach((cc, i) => { (m[cc] = m[cc] || [0, 0, 0])[i]++; }));
+  return Object.entries(m).sort((a, b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || b[1][2] - a[1][2]);
 }
 
 /* ---------- 일정 (스케줄 캘린더) ---------- */
@@ -1037,7 +1104,7 @@ function renderVisits() {
 
 /* ---------- 활동 기록 + 이용 제한 ---------- */
 const ACT = {
-  cheer: "💌 응원 작성", cheer_edit: "✏️ 응원 수정", cheer_del: "🗑 응원 삭제(본인)", video: "🎬 영상 추천", photo: "📷 사진 올림", event: "📢 일정 제보", vote: "🏆 투표",
+  game: "🎮 게임", cheer: "💌 응원 작성", cheer_edit: "✏️ 응원 수정", cheer_del: "🗑 응원 삭제(본인)", video: "🎬 영상 추천", photo: "📷 사진 올림", event: "📢 일정 제보", vote: "🏆 투표",
   a_del_cheer: "🛠 응원 삭제", a_ok_video: "🛠 영상 승인", a_no_video: "🛠 영상 거절", a_add_video: "🛠 영상 추가", a_del_video: "🛠 영상 삭제",
   a_ok_photo: "🛠 사진 승인", a_no_photo: "🛠 사진 거절", a_del_photo: "🛠 사진 삭제", a_ok_event: "🛠 일정 승인", a_no_event: "🛠 일정 거절",
   a_add_event: "🛠 일정 추가", a_del_event: "🛠 일정 삭제", a_live_on: "🛠 라이브 켬", a_live_off: "🛠 라이브 끔", a_ban: "🛠 이용 제한", a_unban: "🛠 제한 해제", req: "🎤 신청곡", letter: "🐾 양말이 편지", a_add_diary: "🛠 양말이 다이어리 추가", a_del_diary: "🛠 양말이 다이어리 삭제", a_del_letter: "🛠 양말이 편지 삭제", req_vote: "🎶 신청곡 투표", a_req_sent: "🛠 신청곡 결과 전달",
@@ -1227,7 +1294,7 @@ document.body.appendChild(sky);
 const ctx = sky.getContext("2d");
 const COLORS = XMAS ? ["#FFFFFF", "#EAF2FB", "#DCE9F7", "#C8102E", "#1E6B47", "#D4AF37", "#F4F1E8"] : ["#F4A6B8", "#F7C1CF", "#FAD4DD", "#E98AA5", "#BFE3CF", "#FFE3A3", "#C9D8FF"];
 let petals = [], burst = [], W = 0, H = 0, dpr = 1;
-function size() { dpr = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; sky.width = W * dpr; sky.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+function size() { dpr = Math.min(IOS ? 1.5 : 2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; sky.width = W * dpr; sky.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
 function newPetal(top) {
   return { x: Math.random() * W, y: top ? -20 : Math.random() * H, r: 5 + Math.random() * 6, vy: 0.35 + Math.random() * 0.6,
     sway: Math.random() * Math.PI * 2, sw: 0.4 + Math.random() * 0.8, rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.03,
@@ -1272,7 +1339,8 @@ function frame() {
 let running = false;
 function start() { if (!running && !reduceMotion) { running = true; requestAnimationFrame(frame); } }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
-addEventListener("resize", size);
+let sizeT = 0;
+addEventListener("resize", () => { clearTimeout(sizeT); sizeT = setTimeout(size, 200); });
 size();
 const petalCount = XMAS ? (innerWidth < 600 ? 22 : 40) : (innerWidth < 600 ? 10 : 18);
 for (let i = 0; i < petalCount; i++) petals.push(newPetal(false));
@@ -1392,7 +1460,7 @@ function renderDog() {
     const v = parseVideo(vd.url); if (!v) return;
     const card = document.createElement("article"); card.className = `clip ${v.p}`;
     if (v.embed) { const f = document.createElement("iframe"); f.className = "embed" + (v.tall ? "" : " landscape") + (v.insta ? " insta" : ""); f.loading = "lazy";
-      f.src = v.embed; f.dataset.p = v.p; f.title = "Yangmal"; f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay"; card.appendChild(f); }
+      f.dataset.src = v.embed; queuePark(); f.dataset.p = v.p; f.title = "Yangmal"; f.allow = "fullscreen; encrypted-media; picture-in-picture; autoplay"; card.appendChild(f); }
     else { const a = document.createElement("a"); a.className = "face"; a.href = vd.url; a.target = "_blank"; a.rel = "noopener"; a.innerHTML = '<span class="play"></span>'; card.appendChild(a); }
     const m = document.createElement("div"); m.className = "info"; const mm = document.createElement("div"); mm.className = "m";
     const tg = document.createElement("span"); tg.className = "ptag " + v.p; tg.textContent = PLAT[v.p]; mm.appendChild(tg);
@@ -1562,27 +1630,19 @@ function renderCelebrate() {
 celebrate.addEventListener("click", () => { const c = celebrateKind(); if (c && c.k === "ym") pawBurst(innerWidth / 2, innerHeight * .3, 60); else confetti(); });
 
 /* ---------- 게임 ---------- */
-let gameBoardCb = null, gameBoardOn = false;
 function startGamesPage() {
   GM.startGames({
-    getLang: () => lang, getCountry: () => myCountry, flagOf, countryName, poodleSVG, xmas: XMAS,
+    getLang: () => lang, getCountry: () => myCountry, flagOf, countryName, poodleSVG, xmas: XMAS, checkText,
     photos: [...PH.PHOTOS, ...(PH.YANGMAL || []), ...(PH.SNOWMAN_PHOTOS || [])],
     playlist: PL.PLAYLIST,
-    pauseMusic: () => { if (!audio.paused) audio.pause(); },
     celebrate: () => confetti(),
     vibrate: () => { try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} },
-    saveScore: async n => {
-      if (!db || !user) return false;
-      try { await setDoc(doc(db, "game_scores", myCountry), { n: increment(Math.min(500, Math.max(1, Math.floor(n)))) }, { merge: true }); return true; } catch (e) { return false; }
-    },
-    watchBoard: cb => { gameBoardCb = cb; watchGameBoard(); },
+    defaultNick: () => (mine && mine.nick) || "",
+    fillCountries: (sel, cur) => fillCountries(sel, cur),
+    setCountry: cc => { myCountry = cc; try { localStorage.setItem("hm_cc", cc); } catch (e) {} if ($("h_from")) $("h_from").value = cc; },
+    addHearts: async n => { try { await addHeartsTo(myCountry, Math.min(30, Math.max(1, n))); return true; } catch (e) { return false; } },
+    logGame: (nick, detail) => logAct("game", detail, { nick, from: myCountry }),
   });
-}
-function watchGameBoard() {
-  if (gameBoardOn || !db || !gameBoardCb) return; gameBoardOn = true;
-  onSnapshot(collection(db, "game_scores"), snap => {
-    const b = {}; snap.docs.forEach(d => { const n = d.data().n; if (typeof n === "number") b[d.id] = n; }); gameBoardCb(b);
-  }, () => { gameBoardOn = false; });
 }
 
 /* ---------- 메뉴별 페이지 나누기 ---------- */
@@ -1605,6 +1665,7 @@ function route() {
   if (page === "request") setTimeout(() => loadRequests(), 0);
   if (page === "dog") setTimeout(startDog, 0);
   if (page === "games") setTimeout(startGamesPage, 0); else GM.stopGames();
+  parkFrames();
   const sec = document.getElementById(page);
   if (sec) { sec.classList.remove("enter"); void sec.offsetWidth; sec.classList.add("enter"); }
   window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); if (firstRoute) setTimeout(() => window.scrollTo(0, 0), 300);
@@ -1699,7 +1760,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
   }, () => { clips = []; renderClips(); });
-  watchHearts(); watchEvents(); countVisit(); watchGameBoard();
+  watchHearts(); watchEvents(); countVisit();
   onSnapshot(doc(db, "status", "live"), d => { live = d.exists() ? d.data() : null; renderLive(); }, () => {});
 
   // 방문자는 보이지 않게 익명 로그인 → 로그인 화면 없이 응원 메시지를 쓸 수 있어요

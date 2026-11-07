@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Noto+Sans+Thai:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=202611070422">
+<link rel="stylesheet" href="style.css?v=202611072323">
 </head>
 <body>
 <div class="wrap">
@@ -77,7 +77,13 @@
         <label class="hfrom"><span data-i="h_from">내 나라</span><select id="h_from"></select></label>
       </div>
       <div class="htotal"><b id="h_total">0</b> <span data-i="h_total">개의 하트가 전 세계에서 모였어요</span></div>
-      <ol class="hboard" id="h_board"></ol>
+      <div class="hweek">
+        <div class="hwhead"><b id="hw_title"></b><small id="hw_left"></small></div>
+        <ol class="hboard" id="h_board"></ol>
+        <small class="hwrule" id="hw_rule"></small>
+        <p class="hwlast" id="hw_last" hidden></p>
+      </div>
+      <div class="hmedal"><b id="medal_title"></b><ol class="medals" id="medals"></ol></div>
     </div>
     <div class="live" id="live" hidden>
       <span class="on"><span class="dot"></span><span data-i="live_on">지금 틱톡 라이브 중</span></span>
@@ -302,24 +308,43 @@
   <section id="games" hidden>
     <h2 id="g_title">게임</h2>
     <p class="gintro" id="g_intro"></p>
+    <div class="gid">
+      <label><span id="g_nicklab">아이디</span><input id="g_nick" maxlength="20" autocomplete="nickname"></label>
+      <label><span id="g_fromlab">내 나라</span><select id="g_from"></select></label>
+      <small id="g_nickmsg" class="gnickmsg" aria-live="polite"></small>
+      <b class="gleft" id="g_left"></b>
+    </div>
     <div class="gtabs" role="group">
-      <button type="button" data-g="catch"></button><button type="button" data-g="match"></button>
+      <button type="button" data-g="derby"></button><button type="button" data-g="catch"></button><button type="button" data-g="match"></button>
+    </div>
+    <div class="gpanel" id="g_derby" hidden>
+      <p class="ghelp" id="gd_help"></p>
+      <p class="gdplaces" id="gd_places"></p>
+      <p class="gdmsg" id="gd_msg" aria-live="polite"></p>
+      <div class="dtrack" id="gd_track"></div>
+      <button type="button" class="go gdrun" id="gd_run" hidden></button>
+      <p class="gres" id="gd_sent" aria-live="polite"></p>
+      <p class="gdres" id="gd_res"></p>
+      <button type="button" class="go" id="gd_again" hidden></button>
     </div>
     <div class="gpanel" id="g_catch">
       <p class="ghelp" id="gc_help"></p>
+      <p class="gdplaces" id="gc_rw"></p>
       <div class="ghud"><span id="gc_score"></span><span id="gc_lives"></span><span id="gc_time"></span><span class="gbest" id="gc_best"></span></div>
       <div class="gstage">
         <canvas id="g_cv" aria-label="Yangmal treat catch"></canvas>
         <div class="gover" id="gc_over" hidden><strong id="gc_res"></strong><small id="gc_sent"></small></div>
         <button type="button" class="go gplay" id="gc_start"></button>
       </div>
-      <div class="gboard"><h3 id="g_board_title"></h3><ol class="hboard" id="g_board"></ol></div>
+
     </div>
     <div class="gpanel" id="g_match" hidden>
       <p class="ghelp" id="gm_help"></p>
       <div class="ghud"><span id="gm_moves"></span><span id="gm_time"></span><span class="gbest" id="gm_best"></span></div>
       <div class="mgrid" id="gm_grid"></div>
+      <p class="gdplaces" id="gm_rw"></p>
       <p class="gres" id="gm_res" aria-live="polite"></p>
+      <p class="gres" id="gm_sent" aria-live="polite"></p>
       <button type="button" class="go" id="gm_start"></button>
     </div>
   </section>
@@ -390,6 +415,6 @@
   <audio id="audio" preload="metadata"></audio>
 </div>
 
-<script type="module" src="app.js?v=202611070422"></script>
+<script type="module" src="app.js?v=202611072323"></script>
 </body>
 </html>

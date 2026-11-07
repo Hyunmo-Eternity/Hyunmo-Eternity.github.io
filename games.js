@@ -1,6 +1,6 @@
 // 🎮 게임 페이지: 양말이 간식 받기 · 사진 짝 맞추기
 const G = {
-ko: { title: "게임", intro: "모모님과 양말이랑 같이 놀아요! 간식 점수는 우리나라 점수로 모여요.",
+ko: { title: "게임", intro: "모모님, 양말이와 함께 놀아요! 게임 결과만큼 우리나라에 하트가 쌓이고, 매주 월요일에 나라별 메달로 정산돼요.",
   tab_catch: "🦴 간식 받기", tab_match: "🃏 짝 맞추기", tab_song: "🎵 노래 맞히기",
   start: "시작하기", again: "다시 하기", score: "점수", best: "최고", time: "시간", moves: "넘긴 횟수",
   catch_help: "손가락으로 양말이를 좌우로 움직여 간식을 받아요. 🍫초콜릿 🧅양파 🍇포도는 강아지에게 위험하니까 피해요!",
@@ -9,8 +9,9 @@ ko: { title: "게임", intro: "모모님과 양말이랑 같이 놀아요! 간�
   match_help: "카드를 두 장씩 뒤집어서 같은 사진을 찾아요.", match_done: "{m}번 만에 다 찾았어요!",
   song_help: "노래 앞부분을 잠깐 듣고 제목을 맞혀요. 모두 5문제예요.", song_q: "{i}번째 노래, 제목은?",
   replay: "▶ 다시 듣기", right: "정답! 🎉", wrong: "아쉬워요. 정답은 「{t}」", next: "다음 문제", song_done: "5문제 중 {n}개 맞혔어요!",
+  tab_derby: "🏇 모모 더비", derby_help: "응원할 말을 고르고, 출발하면 「달려!」 버튼을 빠르게 연타해요. 등수가 높을수록 우리나라에 하트가 많이 쌓여요!", pick: "응원할 말을 골라요", run: "달려! 🥕", me: "나", place: "{p}등!", derby_res: "{flag} {country}에 하트 {n}개를 보냈어요 💗", derby_nohearts: "하트를 보내지 못했어요. 잠시 후 다시 해주세요.", places: "1등 💗10 · 2등 💗7 · 3등 💗5 · 4등 💗3 · 5등 💗2", nick_label: "아이디", nick_ph: "게임에서 쓸 이름", nick_need: "먼저 아이디를 적어주세요 🙂", nick_bad: "이 아이디는 쓸 수 없어요", country_label: "내 나라", catch_reward: "간식 4점마다 💗1 (최대 💗10)", match_reward: "12번 이내 💗10 · 16번 이내 💗7 · 22번 이내 💗5 · 그 이상 💗3", left: "오늘 남은 게임: {n}/{max}판", limit_done: "오늘 {max}판을 다 했어요! 내일 또 만나요 🌙",
   bad_food: "앗, 강아지에게 위험한 음식이에요!" },
-en: { title: "Games", intro: "Play with Hyunmo and Yangmal! Treat scores add up for your country.",
+en: { title: "Games", intro: "Play with Hyunmo and Yangmal! Your results add hearts to your country, and every Monday the week's hearts are settled into country medals.",
   tab_catch: "🦴 Treat catch", tab_match: "🃏 Memory", tab_song: "🎵 Name that song",
   start: "Start", again: "Play again", score: "Score", best: "Best", time: "Time", moves: "Moves",
   catch_help: "Slide Yangmal left and right to catch treats. Dodge 🍫chocolate, 🧅onion and 🍇grapes — they're unsafe for dogs!",
@@ -19,8 +20,9 @@ en: { title: "Games", intro: "Play with Hyunmo and Yangmal! Treat scores add up 
   match_help: "Flip two cards at a time and find the matching photos.", match_done: "All found in {m} moves!",
   song_help: "Hear a few seconds of a song and pick the title. 5 rounds.", song_q: "Song {i} — what's the title?",
   replay: "▶ Listen again", right: "Correct! 🎉", wrong: "So close! It was “{t}”", next: "Next", song_done: "You got {n} out of 5!",
+  tab_derby: "🏇 Momo Derby", derby_help: "Pick a horse to cheer for, then tap “Run!” as fast as you can. The higher you place, the more hearts your country gets!", pick: "Pick your horse", run: "Run! 🥕", me: "Me", place: "{p}st!", derby_res: "Sent {n} hearts to {flag} {country} 💗", derby_nohearts: "Couldn't send hearts. Please try again in a moment.", places: "1st 💗10 · 2nd 💗7 · 3rd 💗5 · 4th 💗3 · 5th 💗2", nick_label: "ID", nick_ph: "Your name in games", nick_need: "Please enter your ID first 🙂", nick_bad: "That ID can't be used", country_label: "My country", catch_reward: "💗1 for every 4 treat points (up to 💗10)", match_reward: "≤12 moves 💗10 · ≤16 💗7 · ≤22 💗5 · more 💗3", left: "Games left today: {n}/{max}", limit_done: "You've played all {max} games today! See you tomorrow 🌙",
   bad_food: "Oops, that's not safe for dogs!" },
-th: { title: "เกม", intro: "มาเล่นกับฮยอนโมและยังมัลกัน! คะแนนขนมจะรวมเป็นคะแนนของประเทศคุณ",
+th: { title: "เกม", intro: "มาเล่นกับฮยอนโมและยังมัลกัน! ผลเกมจะเพิ่มหัวใจให้ประเทศคุณ และทุกวันจันทร์จะสรุปเป็นเหรียญของแต่ละประเทศ",
   tab_catch: "🦴 รับขนม", tab_match: "🃏 จับคู่รูป", tab_song: "🎵 ทายเพลง",
   start: "เริ่มเลย", again: "เล่นอีกครั้ง", score: "คะแนน", best: "สูงสุด", time: "เวลา", moves: "จำนวนครั้ง",
   catch_help: "เลื่อนยังมัลไปซ้ายขวาเพื่อรับขนม หลบ 🍫ช็อกโกแลต 🧅หัวหอม 🍇องุ่น เพราะอันตรายต่อน้องหมา!",
@@ -29,8 +31,9 @@ th: { title: "เกม", intro: "มาเล่นกับฮยอนโม�
   match_help: "เปิดการ์ดทีละสองใบ แล้วหารูปที่เหมือนกัน", match_done: "หาครบใน {m} ครั้ง!",
   song_help: "ฟังท่อนต้นของเพลงสักครู่แล้วทายชื่อเพลง ทั้งหมด 5 ข้อ", song_q: "เพลงที่ {i} ชื่ออะไร?",
   replay: "▶ ฟังอีกครั้ง", right: "ถูกต้อง! 🎉", wrong: "เสียดายจัง คำตอบคือ “{t}”", next: "ข้อต่อไป", song_done: "ตอบถูก {n} จาก 5 ข้อ!",
+  tab_derby: "🏇 โมโม ดาร์บี้", derby_help: "เลือกม้าที่จะเชียร์ แล้วกดปุ่ม “วิ่ง!” รัว ๆ ยิ่งได้อันดับดี ประเทศของคุณยิ่งได้หัวใจเยอะ!", pick: "เลือกม้าของคุณ", run: "วิ่ง! 🥕", me: "ฉัน", place: "อันดับ {p}!", derby_res: "ส่งหัวใจ {n} ดวงให้ {flag} {country} แล้ว 💗", derby_nohearts: "ส่งหัวใจไม่สำเร็จ ลองใหม่อีกครั้งนะ", places: "อันดับ1 💗10 · 2 💗7 · 3 💗5 · 4 💗3 · 5 💗2", nick_label: "ไอดี", nick_ph: "ชื่อที่ใช้ในเกม", nick_need: "กรุณาใส่ไอดีก่อนนะ 🙂", nick_bad: "ใช้ไอดีนี้ไม่ได้", country_label: "ประเทศของฉัน", catch_reward: "ทุก 4 คะแนนขนม 💗1 (สูงสุด 💗10)", match_reward: "ไม่เกิน 12 ครั้ง 💗10 · 16 ครั้ง 💗7 · 22 ครั้ง 💗5 · มากกว่านั้น 💗3", left: "วันนี้เหลือ {n}/{max} เกม", limit_done: "วันนี้เล่นครบ {max} เกมแล้ว! พรุ่งนี้มาใหม่นะ 🌙",
   bad_food: "อุ๊ย อันนี้อันตรายต่อน้องหมานะ!" },
-ja: { title: "ゲーム", intro: "ヒョンモとヤンマルと一緒に遊ぼう！おやつの点数は国ごとに集まります。",
+ja: { title: "ゲーム", intro: "ヒョンモ、ヤンマルと遊ぼう！ゲームの結果に応じて国にハートがたまり、毎週月曜日に国別メダルとして集計されます。",
   tab_catch: "🦴 おやつキャッチ", tab_match: "🃏 神経衰弱", tab_song: "🎵 イントロクイズ",
   start: "スタート", again: "もう一度", score: "スコア", best: "ベスト", time: "時間", moves: "めくった回数",
   catch_help: "指でヤンマルを左右に動かしておやつをキャッチ。🍫チョコ 🧅玉ねぎ 🍇ぶどうは犬に危ないのでよけてね！",
@@ -39,8 +42,9 @@ ja: { title: "ゲーム", intro: "ヒョンモとヤンマルと一緒に遊ぼ�
   match_help: "カードを2枚ずつめくって、同じ写真を見つけよう。", match_done: "{m} 回で全部見つけました！",
   song_help: "曲の最初を少し聴いてタイトルを当ててね。全5問です。", song_q: "{i}曲目、タイトルは？",
   replay: "▶ もう一度聴く", right: "正解！🎉", wrong: "おしい！正解は「{t}」", next: "次の問題", song_done: "5問中 {n} 問正解！",
+  tab_derby: "🏇 モモダービー", derby_help: "応援する馬を選んで、スタートしたら「走れ！」ボタンを連打！順位が高いほど、あなたの国にハートがたまります！", pick: "応援する馬を選んでね", run: "走れ！🥕", me: "わたし", place: "{p}着！", derby_res: "{flag} {country} にハートを {n} 個送りました 💗", derby_nohearts: "ハートを送れませんでした。少ししてからもう一度どうぞ。", places: "1着 💗10 · 2着 💗7 · 3着 💗5 · 4着 💗3 · 5着 💗2", nick_label: "ID", nick_ph: "ゲームで使う名前", nick_need: "先にIDを入力してね 🙂", nick_bad: "このIDは使えません", country_label: "わたしの国", catch_reward: "おやつ4点ごとに 💗1（最大 💗10）", match_reward: "12回以内 💗10 · 16回以内 💗7 · 22回以内 💗5 · それ以上 💗3", left: "今日の残り：{n}/{max} ゲーム", limit_done: "今日の {max} ゲームはぜんぶ遊びました！また明日ね 🌙",
   bad_food: "あっ、犬には危ない食べ物だよ！" },
-zh: { title: "游戏", intro: "和炫模、袜子一起玩吧！零食分数会累计到你的国家。",
+zh: { title: "游戏", intro: "和炫模、袜子一起玩吧！游戏结果会为你的国家累积爱心，每周一结算成各国奖牌。",
   tab_catch: "🦴 接零食", tab_match: "🃏 翻牌配对", tab_song: "🎵 听歌猜名",
   start: "开始", again: "再玩一次", score: "分数", best: "最高", time: "时间", moves: "翻牌次数",
   catch_help: "用手指左右移动袜子来接零食。🍫巧克力 🧅洋葱 🍇葡萄对狗狗有危险，要躲开哦！",
@@ -49,8 +53,9 @@ zh: { title: "游戏", intro: "和炫模、袜子一起玩吧！零食分数会�
   match_help: "每次翻两张牌，找出相同的照片。", match_done: "用了 {m} 次全部找到！",
   song_help: "听几秒歌曲开头，猜出歌名。共 5 题。", song_q: "第 {i} 首，歌名是？",
   replay: "▶ 再听一次", right: "答对了！🎉", wrong: "可惜！答案是「{t}」", next: "下一题", song_done: "5 题答对 {n} 题！",
+  tab_derby: "🏇 炫模赛马", derby_help: "选一匹你要加油的马，开跑后快速连点「冲！」按钮。名次越高，你的国家就能得到越多爱心！", pick: "选择你的马", run: "冲！🥕", me: "我", place: "第 {p} 名！", derby_res: "已为 {flag} {country} 送出 {n} 颗爱心 💗", derby_nohearts: "爱心没送出去，请稍后再试。", places: "第1名 💗10 · 第2名 💗7 · 第3名 💗5 · 第4名 💗3 · 第5名 💗2", nick_label: "ID", nick_ph: "游戏里用的名字", nick_need: "请先填写ID 🙂", nick_bad: "这个ID不能使用", country_label: "我的国家", catch_reward: "每 4 分零食得 💗1（最多 💗10）", match_reward: "12次以内 💗10 · 16次以内 💗7 · 22次以内 💗5 · 更多 💗3", left: "今天剩余：{n}/{max} 局", limit_done: "今天的 {max} 局都玩完啦！明天见 🌙",
   bad_food: "哎呀，这对狗狗有危险！" },
-fil: { title: "Laro", intro: "Makipaglaro kina Hyunmo at Yangmal! Napupunta sa bansa mo ang treat points.",
+fil: { title: "Laro", intro: "Makipaglaro kina Hyunmo at Yangmal! Nadadagdagan ng puso ang bansa mo ayon sa resulta, at tuwing Lunes ay nagiging medalya ito ng bawat bansa.",
   tab_catch: "🦴 Saluhin ang treats", tab_match: "🃏 Memory", tab_song: "🎵 Hulaan ang kanta",
   start: "Simulan", again: "Laro ulit", score: "Puntos", best: "Pinakamataas", time: "Oras", moves: "Bilang ng buklat",
   catch_help: "I-slide si Yangmal pakaliwa at pakanan para saluhin ang treats. Iwasan ang 🍫tsokolate, 🧅sibuyas at 🍇ubas — delikado sa aso!",
@@ -59,8 +64,9 @@ fil: { title: "Laro", intro: "Makipaglaro kina Hyunmo at Yangmal! Napupunta sa b
   match_help: "Bumuklat ng dalawang card at hanapin ang magkaparehong litrato.", match_done: "Nahanap lahat sa {m} buklat!",
   song_help: "Pakinggan ang ilang segundo ng kanta at piliin ang pamagat. 5 tanong.", song_q: "Kanta {i} — ano ang pamagat?",
   replay: "▶ Pakinggan ulit", right: "Tama! 🎉", wrong: "Sayang! Ang sagot ay “{t}”", next: "Susunod", song_done: "Tama ka sa {n} sa 5!",
+  tab_derby: "🏇 Momo Derby", derby_help: "Pumili ng kabayong ichi-cheer, tapos pindutin nang mabilis ang “Takbo!”. Mas mataas ang puwesto, mas maraming puso para sa bansa mo!", pick: "Pumili ng kabayo", run: "Takbo! 🥕", me: "Ako", place: "Ika-{p}!", derby_res: "Nagpadala ng {n} puso sa {flag} {country} 💗", derby_nohearts: "Hindi naipadala ang puso. Subukan ulit mamaya.", places: "1st 💗10 · 2nd 💗7 · 3rd 💗5 · 4th 💗3 · 5th 💗2", nick_label: "ID", nick_ph: "Pangalan mo sa laro", nick_need: "Ilagay muna ang ID mo 🙂", nick_bad: "Hindi puwede ang ID na iyan", country_label: "Bansa ko", catch_reward: "💗1 bawat 4 treat points (hanggang 💗10)", match_reward: "≤12 buklat 💗10 · ≤16 💗7 · ≤22 💗5 · higit pa 💗3", left: "Natitirang laro ngayon: {n}/{max}", limit_done: "Nalaro mo na lahat ng {max} ngayon! Kita tayo bukas 🌙",
   bad_food: "Naku, delikado iyan sa aso!" },
-es: { title: "Juegos", intro: "¡Juega con Hyunmo y Yangmal! Los puntos de premios se suman a tu país.",
+es: { title: "Juegos", intro: "¡Juega con Hyunmo y Yangmal! Tus resultados suman corazones a tu país, y cada lunes se convierten en medallas por país.",
   tab_catch: "🦴 Atrapa premios", tab_match: "🃏 Memoria", tab_song: "🎵 Adivina la canción",
   start: "Empezar", again: "Jugar otra vez", score: "Puntos", best: "Récord", time: "Tiempo", moves: "Intentos",
   catch_help: "Mueve a Yangmal a los lados para atrapar premios. ¡Esquiva 🍫chocolate, 🧅cebolla y 🍇uvas, que son peligrosos para perros!",
@@ -69,6 +75,7 @@ es: { title: "Juegos", intro: "¡Juega con Hyunmo y Yangmal! Los puntos de premi
   match_help: "Voltea dos cartas a la vez y encuentra las fotos iguales.", match_done: "¡Todas encontradas en {m} intentos!",
   song_help: "Escucha unos segundos y elige el título. 5 rondas.", song_q: "Canción {i}: ¿cuál es el título?",
   replay: "▶ Escuchar otra vez", right: "¡Correcto! 🎉", wrong: "¡Casi! Era «{t}»", next: "Siguiente", song_done: "¡Acertaste {n} de 5!",
+  tab_derby: "🏇 Momo Derby", derby_help: "Elige un caballo y, al empezar, toca «¡Corre!» lo más rápido que puedas. ¡Cuanto mejor quedes, más corazones para tu país!", pick: "Elige tu caballo", run: "¡Corre! 🥕", me: "Yo", place: "¡{p}.º puesto!", derby_res: "Enviaste {n} corazones a {flag} {country} 💗", derby_nohearts: "No se pudieron enviar los corazones. Inténtalo en un momento.", places: "1.º 💗10 · 2.º 💗7 · 3.º 💗5 · 4.º 💗3 · 5.º 💗2", nick_label: "ID", nick_ph: "Tu nombre en los juegos", nick_need: "Primero escribe tu ID 🙂", nick_bad: "Ese ID no se puede usar", country_label: "Mi país", catch_reward: "💗1 por cada 4 puntos de premios (máx. 💗10)", match_reward: "≤12 intentos 💗10 · ≤16 💗7 · ≤22 💗5 · más 💗3", left: "Partidas de hoy: {n}/{max}", limit_done: "¡Ya jugaste las {max} partidas de hoy! Nos vemos mañana 🌙",
   bad_food: "¡Uy, eso es peligroso para perros!" },
 };
 
@@ -76,7 +83,39 @@ const fmt = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k] ?? "");
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 
-let C = null, tab = "catch", board = {}, started = false;
+// 하루에 할 수 있는 게임 판수 (모든 게임 합쳐서). 숫자만 바꾸면 돼요.
+export const DAILY_LIMIT = 10;
+const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const plays = {
+  left() { const s = (store.get("hm_plays") || "").split(":"); const used = s[0] === today() ? +s[1] || 0 : 0; return Math.max(0, DAILY_LIMIT - used); },
+  use() { store.set("hm_plays", today() + ":" + (DAILY_LIMIT - this.left() + 1)); renderTop(); },
+};
+const leftText = () => { const t = g(), n = plays.left(); return n > 0 ? fmt(t.left, { n, max: DAILY_LIMIT }) : fmt(t.limit_done, { max: DAILY_LIMIT }); };
+// 아이디 확인: 없으면 입력칸으로 안내하고 false
+let nick = store.get("hm_gnick") || "";
+function needNick() {
+  const t = g(), v = $("g_nick").value.trim();
+  if (!v) { $("g_nickmsg").textContent = t.nick_need; $("g_nick").focus(); return false; }
+  if (C.checkText(v) || v.length > 20) { $("g_nickmsg").textContent = t.nick_bad; $("g_nick").focus(); return false; }
+  nick = v; store.set("hm_gnick", v); $("g_nickmsg").textContent = ""; return true;
+}
+// 게임을 시작해도 되는지 (아이디 + 남은 판수) 확인하고, 되면 한 판을 써요
+function canPlay() { if (!needNick()) return false; if (plays.left() <= 0) { renderTop(); return false; } plays.use(); return true; }
+async function reward(game, n, detail) {
+  const ok = await C.addHearts(n);
+  C.logGame(nick, `${game} ${detail} → 💗${n}`);
+  const t = g(), cc = C.getCountry();
+  return ok ? fmt(t.derby_res, { n, flag: C.flagOf(cc), country: C.countryName(cc) }) : t.derby_nohearts;
+}
+function renderTop() {
+  if (!C) return;
+  const t = g();
+  $("g_nicklab").textContent = t.nick_label; $("g_nick").placeholder = t.nick_ph; $("g_fromlab").textContent = t.country_label;
+  $("g_left").textContent = leftText(); $("g_left").classList.toggle("done", plays.left() <= 0);
+  C.fillCountries($("g_from"), C.getCountry());
+}
+
+let C = null, tab = "derby", started = false;
 const $ = id => document.getElementById(id);
 const g = () => G[C.getLang()] || G.en;
 
@@ -85,39 +124,25 @@ export function startGames(ctx) {
   if (!started) {
     started = true;
     document.querySelectorAll("#games .gtabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.g; stopAll(); render(); }));
-    Catch.init(); Match.init();
-    C.watchBoard(b => { board = b; renderBoard(); });
+    $("g_nick").value = nick || C.defaultNick() || "";
+    $("g_nick").addEventListener("change", () => needNick());
+    $("g_from").addEventListener("change", () => C.setCountry($("g_from").value));
+    Catch.init(); Match.init(); Derby.init();
   }
-  tab = store.get("hm_gtab") === "match" ? "match" : "catch";
+  { const sv = store.get("hm_gtab"); tab = ["catch", "match", "derby"].includes(sv) ? sv : "derby"; }
   render();
 }
 export function stopGames() { if (C) stopAll(); }
 export function langGames() { if (started) render(); }
 
-function stopAll() { Catch.stop(); }
+function stopAll() { Catch.stop(); Derby.stop(); }
 function render() {
   const t = g(); store.set("hm_gtab", tab);
   $("g_title").textContent = t.title; $("g_intro").textContent = t.intro;
   document.querySelectorAll("#games .gtabs button").forEach(b => { b.textContent = t["tab_" + b.dataset.g]; b.setAttribute("aria-pressed", b.dataset.g === tab); });
-  ["catch", "match"].forEach(k => $("g_" + k).hidden = k !== tab);
-  Catch.render(); Match.render(); renderBoard();
+  ["derby", "catch", "match"].forEach(k => $("g_" + k).hidden = k !== tab);
+  renderTop(); Catch.render(); Match.render(); Derby.render();
 }
-function renderBoard() {
-  if (!C) return;
-  const t = g(), ol = $("g_board"); ol.textContent = "";
-  $("g_board_title").textContent = "🏆 " + t.board_title;
-  const rows = Object.entries(board).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
-  if (!rows.length) { const li = document.createElement("li"); li.className = "gempty"; li.textContent = t.board_empty; ol.appendChild(li); return; }
-  const max = rows[0][1];
-  rows.slice(0, 7).forEach(([cc, n], i) => {
-    const li = document.createElement("li");
-    const nm = document.createElement("span"); nm.className = "hn"; nm.textContent = `${["🥇", "🥈", "🥉"][i] || (i + 1) + "."} ${C.flagOf(cc)} ${C.countryName(cc)}`;
-    const bar = document.createElement("span"); bar.className = "hbar"; bar.style.setProperty("--w", Math.max(4, n / max * 100) + "%");
-    const num = document.createElement("span"); num.className = "hc"; num.textContent = n.toLocaleString();
-    li.append(nm, bar, num); ol.appendChild(li);
-  });
-}
-
 /* ---------- 1. 양말이 간식 받기 ---------- */
 const Catch = (() => {
   const GOOD = [["🦴", 1], ["🍖", 1], ["🥕", 1], ["🍓", 1], ["🧀", 1]], BAD = ["🍫", "🧅", "🍇"];
@@ -145,6 +170,8 @@ const Catch = (() => {
     if (!x) x = tx = W / 2;
   }
   function start() {
+    if (running) return;
+    if (!canPlay()) return;
     size(); running = true; over = false; items = []; pops = []; score = 0; lives = 3; t0 = performance.now(); lastSpawn = 0; x = tx = W / 2; last = t0;
     $("gc_over").hidden = true; $("gc_start").hidden = true; hud();
     cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -203,19 +230,18 @@ const Catch = (() => {
     const t = g(), best = +(store.get("hm_g_catch") || 0), nb = score > best;
     if (nb) store.set("hm_g_catch", score);
     hud(DUR);
-    $("gc_over").hidden = false; $("gc_start").hidden = false; $("gc_start").textContent = t.again;
+    $("gc_over").hidden = false; $("gc_start").textContent = t.again; $("gc_start").hidden = false;
     $("gc_res").textContent = fmt(t.catch_over, { n: score }) + (nb && score ? " " + t.newbest : "");
     $("gc_sent").textContent = "";
-    if (score > 0) {
-      if (nb) C.celebrate();
-      const cc = C.getCountry();
-      if (await C.saveScore(score)) $("gc_sent").textContent = fmt(t.sent, { n: score, flag: C.flagOf(cc), country: C.countryName(cc) });
-    }
+    if (nb && score) C.celebrate();
+    const n = Math.max(1, Math.min(10, Math.round(score / 4)));
+    $("gc_sent").textContent = await reward("catch", n, score + "pt");
   }
   function render() {
     const t = g();
     $("gc_help").textContent = t.catch_help;
     if (!running) { $("gc_start").textContent = over ? t.again : t.start; $("gc_start").hidden = false; }
+    $("gc_rw").textContent = t.catch_reward;
     if (!$("g_catch").hidden) { size(); if (!running) draw(); }
     hud(running ? performance.now() - t0 : over ? DUR : 0);
   }
@@ -224,13 +250,13 @@ const Catch = (() => {
 
 /* ---------- 2. 사진 짝 맞추기 ---------- */
 const Match = (() => {
-  let deck = [], open = [], done = new Set(), moves = 0, lock = false, t0 = 0, timer = 0, finished = false;
+  let deck = [], open = [], done = new Set(), moves = 0, lock = false, t0 = 0, timer = 0, finished = false, paid = false;
   function init() { $("gm_start").addEventListener("click", deal); }
   function deal() {
     const pics = shuffle(C.photos).slice(0, 8);
     deck = shuffle([...pics, ...pics]).map((src, i) => ({ src, i }));
-    open = []; done = new Set(); moves = 0; lock = false; finished = false; t0 = 0; clearInterval(timer);
-    $("gm_res").textContent = ""; build(); hud();
+    open = []; done = new Set(); moves = 0; lock = false; finished = false; paid = false; t0 = 0; clearInterval(timer);
+    $("gm_res").textContent = ""; $("gm_sent").textContent = ""; build(); hud();
   }
   function build() {
     const grid = $("gm_grid"); grid.textContent = "";
@@ -244,6 +270,7 @@ const Match = (() => {
   }
   function flip(k, b) {
     if (lock || finished || done.has(k) || open.includes(k)) return;
+    if (!paid) { if (!canPlay()) return; paid = true; }
     if (!t0) { t0 = Date.now(); timer = setInterval(hud, 1000); }
     b.classList.add("up"); open.push(k);
     if (open.length < 2) return;
@@ -258,12 +285,14 @@ const Match = (() => {
       setTimeout(() => { document.querySelectorAll(`.mcard[data-k="${a}"],.mcard[data-k="${c}"]`).forEach(e => e.classList.remove("up")); open = []; lock = false; }, 850);
     }
   }
-  function win() {
+  async function win() {
     finished = true; clearInterval(timer);
     const t = g(), best = +(store.get("hm_g_match") || 0), nb = !best || moves < best;
     if (nb) store.set("hm_g_match", moves);
     $("gm_res").textContent = fmt(t.match_done, { m: moves }) + (nb ? " " + t.newbest : "");
     $("gm_start").textContent = t.again; hud(); C.celebrate();
+    const n = moves <= 12 ? 10 : moves <= 16 ? 7 : moves <= 22 ? 5 : 3;
+    $("gm_sent").textContent = await reward("match", n, moves + " moves");
   }
   function hud() {
     const t = g(), s = t0 ? Math.floor(((finished ? Date.now() : Date.now()) - t0) / 1000) : 0;
@@ -273,9 +302,101 @@ const Match = (() => {
     if (finished) clearInterval(timer);
   }
   function render() {
-    const t = g(); $("gm_help").textContent = t.match_help;
+    const t = g(); $("gm_help").textContent = t.match_help; $("gm_rw").textContent = t.match_reward;
     $("gm_start").textContent = finished ? t.again : (deck.length ? t.again : t.start);
     if (!deck.length) deal(); else hud();
   }
   return { init, render };
+})();
+
+/* ---------- 3. 모모 더비 (경마) ---------- */
+const Derby = (() => {
+  const N = 5, REWARD = [10, 7, 5, 3, 2], COLORS = ["#E57373", "#64B5F6", "#81C784", "#FFB74D", "#BA68C8"];
+  let horses = [], mine = -1, state = "pick", raf = 0, last = 0, boost = 0, finish = [], cd = 0, sent = "";
+  function init() {
+    $("gd_run").addEventListener("pointerdown", e => { e.preventDefault(); tap(); });
+    addEventListener("keydown", e => { if (state === "race" && tab === "derby" && !$("games").hidden && (e.key === " " || e.key === "Enter")) { e.preventDefault(); tap(); } });
+    $("gd_again").addEventListener("click", () => { state = "pick"; mine = -1; sent = ""; setup(); render(); });
+    setup();
+  }
+  function setup() {
+    const titles = shuffle(C.playlist.map(p => p.title)).slice(0, N);
+    while (titles.length < N) titles.push("Momo " + (titles.length + 1));
+    horses = titles.map((name, i) => ({ name, c: COLORS[i], x: 0, v: 0, base: 8.6 + Math.random() * 1.6, wob: Math.random() * 6, done: 0 }));
+    finish = []; boost = 0;
+    const tr = $("gd_track"); tr.textContent = "";
+    horses.forEach((h, i) => {
+      const lane = document.createElement("button"); lane.type = "button"; lane.className = "dlane"; lane.style.setProperty("--c", h.c);
+      lane.innerHTML = `<span class="dnum">${i + 1}</span><span class="dname"></span><span class="dhorse"><span>🏇</span></span><span class="dflag">🏁</span>`;
+      lane.querySelector(".dname").textContent = h.name;
+      lane.addEventListener("click", () => { if (state === "pick" && canPlay()) { mine = i; countdown(); } });
+      tr.appendChild(lane);
+    });
+    draw();
+  }
+  function countdown() {
+    state = "count"; cd = 3; render();
+    const step = () => {
+      $("gd_msg").textContent = cd > 0 ? String(cd) : "GO!";
+      if (cd-- > 0) setTimeout(step, 700); else { state = "race"; last = performance.now(); render(); raf = requestAnimationFrame(loop); }
+    };
+    step();
+  }
+  function tap() {
+    if (state !== "race") return;
+    boost = Math.min(13, boost + 1.35);
+    const hb = document.querySelectorAll("#gd_track .dhorse")[mine]; if (hb) { hb.classList.remove("kick"); void hb.offsetWidth; hb.classList.add("kick"); }
+  }
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    boost *= Math.exp(-1.5 * dt);
+    horses.forEach((h, i) => {
+      if (h.done) return;
+      if (i === mine) h.v = 4.5 + boost;
+      else { h.wob += dt * (1 + Math.random()); h.v = h.base + Math.sin(h.wob) * 1.6 + (Math.random() - .5) * 2; }
+      h.x = Math.min(100, h.x + h.v * dt);
+      if (h.x >= 100) { h.done = finish.length + 1; finish.push(i); }
+    });
+    draw();
+    if (finish.includes(mine)) return end();
+    raf = requestAnimationFrame(loop);
+  }
+  function draw() {
+    document.querySelectorAll("#gd_track .dlane").forEach((el, i) => {
+      const h = horses[i]; if (!h) return;
+      el.style.setProperty("--x", h.x / 100);
+      el.classList.toggle("mine", i === mine);
+      el.classList.toggle("run", state === "race" && !h.done);
+      el.disabled = state !== "pick";
+    });
+  }
+  async function end() {
+    cancelAnimationFrame(raf);
+    // 나머지 말들은 남은 거리 순서로 등수를 정해요
+    horses.map((h, i) => [i, h.x]).filter(([i]) => !finish.includes(i)).sort((a, b) => b[1] - a[1]).forEach(([i]) => { horses[i].done = finish.length + 1; finish.push(i); });
+    state = "done"; draw();
+    const place = horses[mine].done, n = REWARD[place - 1] || 1;
+    sent = "";
+    render();
+    if (place === 1) C.celebrate();
+    sent = await reward("derby", n, "#" + place);
+    render();
+  }
+  function stop() { cancelAnimationFrame(raf); if (state === "race" || state === "count") { state = "pick"; mine = -1; setup(); } }
+  function render() {
+    const t = g();
+    $("gd_help").textContent = t.derby_help; $("gd_places").textContent = t.places;
+    $("gd_run").textContent = t.run; $("gd_run").hidden = state !== "race";
+    $("gd_again").textContent = t.again; $("gd_again").hidden = state !== "done";
+    if (state === "pick") $("gd_msg").textContent = plays.left() > 0 ? "👇 " + t.pick : "🌙";
+    if (state === "race") $("gd_msg").textContent = "GO! 🏇";
+    if (state === "done") {
+      const order = finish.map((i, k) => `${k + 1}. ${horses[i].name}${i === mine ? " (" + t.me + ")" : ""}`).join("   ");
+      $("gd_msg").textContent = "🏆 " + fmt(t.place, { p: horses[mine].done });
+      $("gd_res").textContent = order; $("gd_sent").textContent = sent;
+    } else { $("gd_res").textContent = ""; $("gd_sent").textContent = ""; }
+    document.querySelectorAll("#gd_track .dlane").forEach((el, i) => el.setAttribute("aria-label", horses[i] ? horses[i].name : ""));
+    draw();
+  }
+  return { init, stop, render };
 })();
