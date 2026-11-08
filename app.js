@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611082210";
-import { T, DISC } from "./i18n.js?v=202611082210";
-import * as PL from "./music/playlist.js?v=202611082210";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611082219";
+import { T, DISC } from "./i18n.js?v=202611082219";
+import * as PL from "./music/playlist.js?v=202611082219";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,16 +11,43 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611082210";
+import * as PH from "./photos.js?v=202611082219";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611082210";
-import { HOPE } from "./hope.js?v=202611082210";
-import { checkText } from "./filter.js?v=202611082210";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611082210";
-import * as TH from "./theme.js?v=202611082210";
-import * as GM from "./games.js?v=202611082210";
+import { QUIZ } from "./quiz.js?v=202611082219";
+import { HOPE } from "./hope.js?v=202611082219";
+import { checkText } from "./filter.js?v=202611082219";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611082219";
+import * as TH from "./theme.js?v=202611082219";
+import * as GM from "./games.js?v=202611082219";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
+/* ---------- 앱 설치 (홈 화면에 추가) ---------- */
+const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let installEvt = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; renderAppCard(); });
+addEventListener("appinstalled", () => { installEvt = null; renderAppCard(); });
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+function renderAppCard() {
+  const t = T[lang];
+  document.querySelectorAll(".appcard").forEach(box => {
+    box.hidden = STANDALONE;
+    if (STANDALONE) return;
+    box.textContent = "";
+    const h = document.createElement("b"); h.textContent = t.app_title;
+    const p = document.createElement("p"); p.textContent = t.app_desc;
+    box.append(h, p);
+    if (installEvt) {
+      const btn = document.createElement("button"); btn.type = "button"; btn.className = "go"; btn.textContent = t.app_btn;
+      btn.onclick = async () => { const e = installEvt; installEvt = null; e.prompt(); try { await e.userChoice; } catch (er) {} renderAppCard(); };
+      box.appendChild(btn);
+    } else {
+      const how = document.createElement("p"); how.className = "apphow";
+      how.textContent = IOS ? t.app_ios : t.app_android;
+      box.appendChild(how);
+    }
+  });
+}
+
 // 크리스마스 테마 켜기 (theme.js 에서 바꿔요)
 const XMAS = (() => { const t = TH.THEME || "flower", m = new Date(Date.now() + 9 * 3600e3).getUTCMonth() + 1; return t === "christmas" || (t === "auto" && m === 12); })();
 if (XMAS) document.documentElement.classList.add("xmas");
@@ -1237,7 +1264,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); renderAppCard(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {

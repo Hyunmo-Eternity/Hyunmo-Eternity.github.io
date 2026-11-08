@@ -852,3 +852,9 @@ html,body{overflow-x:clip}
 .ghow ol{margin:0;padding:0;list-style:none;counter-reset:st;display:grid;gap:7px}
 .ghow li{counter-increment:st;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;word-break:keep-all}
 .ghow li::before{content:counter(st);flex:none;width:22px;height:22px;border-radius:50%;background:var(--petal);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+/* 앱 설치 카드 */
+.appcard{display:grid;gap:6px;justify-items:start;margin:0 0 16px;padding:16px;border-radius:18px;
+  background:linear-gradient(135deg,color-mix(in srgb,#FF8FAB 22%,var(--paper)),var(--paper));border:1px solid var(--line)}
+.appcard b{font-size:16px}
+.appcard p{margin:0;font-size:14px;color:var(--muted);line-height:1.55;word-break:keep-all}
+.appcard .apphow{color:var(--ink);font-weight:600}
