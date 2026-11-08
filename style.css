@@ -846,3 +846,9 @@ html,body{overflow-x:clip}
 /* 영상 추천: 맨 위 안내 */
 .sgnote{margin:4px 0 8px;padding:12px 14px;border-radius:14px;background:var(--petal-soft);color:var(--ink);font-weight:700;font-size:14px;line-height:1.5}
 #clips .suggest{margin-bottom:16px}
+/* 게임 방법 카드 */
+.ghow{width:100%;max-width:440px;text-align:left;background:var(--paper);border:2px dashed var(--petal);border-radius:16px;padding:12px 14px 10px}
+.ghow b{display:block;font-size:15px;margin-bottom:6px;color:var(--petal)}
+.ghow ol{margin:0;padding:0;list-style:none;counter-reset:st;display:grid;gap:7px}
+.ghow li{counter-increment:st;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;word-break:keep-all}
+.ghow li::before{content:counter(st);flex:none;width:22px;height:22px;border-radius:50%;background:var(--petal);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}

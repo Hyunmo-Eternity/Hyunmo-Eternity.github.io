@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611072323";
-import { T, DISC } from "./i18n.js?v=202611072323";
-import * as PL from "./music/playlist.js?v=202611072323";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611082210";
+import { T, DISC } from "./i18n.js?v=202611082210";
+import * as PL from "./music/playlist.js?v=202611082210";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,14 +11,14 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611072323";
+import * as PH from "./photos.js?v=202611082210";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611072323";
-import { HOPE } from "./hope.js?v=202611072323";
-import { checkText } from "./filter.js?v=202611072323";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611072323";
-import * as TH from "./theme.js?v=202611072323";
-import * as GM from "./games.js?v=202611072323";
+import { QUIZ } from "./quiz.js?v=202611082210";
+import { HOPE } from "./hope.js?v=202611082210";
+import { checkText } from "./filter.js?v=202611082210";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611082210";
+import * as TH from "./theme.js?v=202611082210";
+import * as GM from "./games.js?v=202611082210";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
 // 크리스마스 테마 켜기 (theme.js 에서 바꿔요)
