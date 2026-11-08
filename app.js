@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611082219";
-import { T, DISC } from "./i18n.js?v=202611082219";
-import * as PL from "./music/playlist.js?v=202611082219";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611090344";
+import { T, DISC } from "./i18n.js?v=202611090344";
+import * as PL from "./music/playlist.js?v=202611090344";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,14 +11,14 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611082219";
+import * as PH from "./photos.js?v=202611090344";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611082219";
-import { HOPE } from "./hope.js?v=202611082219";
-import { checkText } from "./filter.js?v=202611082219";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611082219";
-import * as TH from "./theme.js?v=202611082219";
-import * as GM from "./games.js?v=202611082219";
+import { QUIZ } from "./quiz.js?v=202611090344";
+import { HOPE } from "./hope.js?v=202611090344";
+import { checkText } from "./filter.js?v=202611090344";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611090344";
+import * as TH from "./theme.js?v=202611090344";
+import * as GM from "./games.js?v=202611090344";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
 /* ---------- 앱 설치 (홈 화면에 추가) ---------- */
@@ -225,17 +225,18 @@ function parseVideo(u) {
   }
   return null;
 }
-let clipFilter = "all";
+// 영상은 틱톡 · 유튜브 · 인스타 탭으로 나눠서 한 번에 한 종류만 보여줘요
+let clipFilter = "tiktok";
 const chips = document.createElement("div"); chips.className = "chips"; chips.setAttribute("role", "group");
 $("cliplist").before(chips);
 function renderChips() {
-  const t = T[lang], have = new Set((clips || []).map(c => (parseVideo(c.url) || {}).p).filter(Boolean));
-  chips.textContent = ""; chips.hidden = have.size < 2;
-  if (clipFilter !== "all" && !have.has(clipFilter)) clipFilter = "all";
-  for (const k of ["all", "tiktok", "youtube", "instagram"]) {
-    if (k !== "all" && !have.has(k)) continue;
+  const cnt = { tiktok: 0, youtube: 0, instagram: 0 };
+  (clips || []).forEach(c => { const p = (parseVideo(c.url) || {}).p; if (p in cnt) cnt[p]++; });
+  if (!cnt[clipFilter]) clipFilter = ["tiktok", "youtube", "instagram"].find(k => cnt[k]) || "tiktok";
+  chips.textContent = ""; chips.hidden = false;
+  for (const k of ["tiktok", "youtube", "instagram"]) {
     const b = document.createElement("button"); b.type = "button"; b.className = "chip " + k;
-    b.textContent = k === "all" ? t.all : PLAT[k]; b.setAttribute("aria-pressed", clipFilter === k);
+    b.textContent = `${PLAT[k]} ${cnt[k]}`; b.setAttribute("aria-pressed", clipFilter === k);
     b.onclick = () => { clipFilter = k; renderClips(); };
     chips.appendChild(b);
   }
@@ -243,11 +244,25 @@ function renderChips() {
 // 아이폰 메모리 절약: 지금 보고 있는 페이지의 영상만 불러오고, 다른 페이지 영상은 잠시 내려놔요
 let parkT = 0;
 function queuePark() { clearTimeout(parkT); parkT = setTimeout(parkFrames, 0); }
+// 화면 가까이 온 영상만, 하나씩 천천히 불러와요 (한꺼번에 많이 부르면 틱톡이 잠시 막아요)
+const loadQ = []; let loadBusy = false;
+function pumpLoad() {
+  if (loadBusy) return;
+  const f = loadQ.shift(); if (!f) return;
+  if (f.isConnected && !f.closest("section[hidden]") && !f.getAttribute("src") && f.dataset.src) {
+    loadBusy = true; f.src = f.dataset.src;
+    setTimeout(() => { loadBusy = false; pumpLoad(); }, f.dataset.src.includes("tiktok") ? 900 : 300);
+  } else pumpLoad();
+}
+const frameIO = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { frameIO.unobserve(e.target); if (!loadQ.includes(e.target)) loadQ.push(e.target); pumpLoad(); }
+}), { rootMargin: "300px 0px" }) : null;
 function parkFrames() {
   document.querySelectorAll("iframe.embed").forEach(f => {
     const show = !f.closest("section[hidden]");
-    if (show && !f.getAttribute("src") && f.dataset.src) f.src = f.dataset.src;
+    if (show && !f.getAttribute("src") && f.dataset.src) { if (frameIO) frameIO.observe(f); else f.src = f.dataset.src; }
     if (!show && f.getAttribute("src")) { f.dataset.src = f.getAttribute("src"); f.removeAttribute("src"); f.dataset.active = ""; }
+    if (!show && frameIO) frameIO.unobserve(f);
   });
 }
 function renderClips() {
@@ -259,7 +274,7 @@ function renderClips() {
   if (!clips.length) return msg("noclips");
   for (const c of clips) {
     const v = parseVideo(c.url) || { p: "tiktok", who: "", tall: true, embed: null };
-    if (clipFilter !== "all" && v.p !== clipFilter) continue;
+    if (v.p !== clipFilter) continue;
     const card = document.createElement("article"); card.className = `clip ${v.p}${v.tall ? "" : " wide"}`;
     if (v.embed) {
       const f = document.createElement("iframe");
@@ -579,7 +594,7 @@ function fillCountries(sel, cur) {
 }
 
 /* ---------- 전 세계 하트 보내기 ---------- */
-let hearts = {}, heartQueue = 0, heartTimer = null;
+let hearts = {}, heartQueue = 0, heartTimer = null, heartBump = false;
 let myCountry = (() => { try { return localStorage.getItem("hm_cc") || ""; } catch (e) { return ""; } })() || guessCountry();
 function renderHearts() {
   const sel = $("h_from"), cur = sel.value || myCountry;
@@ -590,7 +605,12 @@ function renderHearts() {
   $("h_total").textContent = total.toLocaleString();
   const t = T[lang], MED = ["🥇", "🥈", "🥉"];
   const board = $("h_board"); board.textContent = "";
-  const wk = Object.entries(heartsWeek).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  const wkMap = { ...heartsWeek }; if (heartQueue) wkMap[myCountry] = (wkMap[myCountry] || 0) + heartQueue;
+  const wk = Object.entries(wkMap).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  // 내 나라 이번 주 하트 · 순위 (누르면 바로 올라가요)
+  const myN = wkMap[myCountry] || 0, myR = wk.findIndex(([cc]) => cc === myCountry) + 1;
+  $("h_mine").textContent = t.h_mine.replace("{flag}", flagOf(myCountry)).replace("{country}", countryName(myCountry)).replace("{n}", myN.toLocaleString()).replace("{r}", myR || "-");
+  if (heartBump) { const el = $("h_mine"); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
   const ms = weekStart(1) - Date.now(), d = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5);
   $("hw_title").textContent = "🏆 " + t.hw_title;
   $("hw_left").textContent = t.hw_left.replace("{d}", d).replace("{h}", h);
@@ -602,8 +622,10 @@ function renderHearts() {
     const name = document.createElement("span"); name.className = "hn"; name.textContent = `${MED[i] || (i + 1) + "."} ${flagOf(cc)} ${countryName(cc)}`;
     const bar = document.createElement("span"); bar.className = "hbar"; bar.style.setProperty("--w", Math.max(4, n / max * 100) + "%");
     const num = document.createElement("span"); num.className = "hc"; num.textContent = n.toLocaleString();
+    if (cc === myCountry) { li.className = "me" + (heartBump ? " bump" : ""); }
     li.append(name, bar, num); board.appendChild(li);
   });
+  heartBump = false;
   const last = (weekResults || {})[weekId(-1)];
   $("hw_last").hidden = !last;
   if (last) $("hw_last").textContent = `${t.hw_last}: ` + last.map((cc, i) => `${MED[i]} ${flagOf(cc)} ${countryName(cc)}`).join("  ");
@@ -618,7 +640,7 @@ function renderHearts() {
     li.append(name, c); mt.appendChild(li);
   });
 }
-$("h_from").addEventListener("change", () => { myCountry = $("h_from").value; try { localStorage.setItem("hm_cc", myCountry); } catch (e) {} });
+$("h_from").addEventListener("change", () => { myCountry = $("h_from").value; try { localStorage.setItem("hm_cc", myCountry); } catch (e) {} renderHearts(); });
 function floatHeart(x, y) {
   if (reduceMotion) return;
   const h = document.createElement("span"); h.className = "fheart"; h.textContent = ["💗", "💖", "🌸", "💕"][Math.floor(Math.random() * 4)];
@@ -628,7 +650,7 @@ function floatHeart(x, y) {
 $("heartbtn").addEventListener("click", e => {
   const r = $("heartbtn").getBoundingClientRect();
   floatHeart(r.left + r.width / 2 + (Math.random() * 30 - 15), r.top);
-  heartQueue = Math.min(heartQueue + 1, 30); renderHearts();
+  heartQueue = Math.min(heartQueue + 1, 30); heartBump = true; renderHearts();
   clearTimeout(heartTimer); heartTimer = setTimeout(flushHearts, 900);
 });
 async function flushHearts() {
@@ -1667,7 +1689,7 @@ function startGamesPage() {
     defaultNick: () => (mine && mine.nick) || "",
     fillCountries: (sel, cur) => fillCountries(sel, cur),
     setCountry: cc => { myCountry = cc; try { localStorage.setItem("hm_cc", cc); } catch (e) {} if ($("h_from")) $("h_from").value = cc; },
-    addHearts: async n => { try { await addHeartsTo(myCountry, Math.min(30, Math.max(1, n))); return true; } catch (e) { return false; } },
+    addHearts: async n => { try { await addHeartsTo(myCountry, Math.min(300, Math.max(1, n))); return true; } catch (e) { return false; } },
     logGame: (nick, detail) => logAct("game", detail, { nick, from: myCountry }),
   });
 }

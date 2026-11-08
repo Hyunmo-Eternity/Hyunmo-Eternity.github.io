@@ -858,3 +858,9 @@ html,body{overflow-x:clip}
 .appcard b{font-size:16px}
 .appcard p{margin:0;font-size:14px;color:var(--muted);line-height:1.55;word-break:keep-all}
 .appcard .apphow{color:var(--ink);font-weight:600}
+/* 내 나라 하트 바로 보이기 */
+.hmine{margin:8px 0 0;text-align:center;font-weight:700;font-size:15px;color:var(--petal)}
+.hmine.bump,.hboard li.me.bump{animation:hbump .45s ease-out}
+.hboard li.me{background:color-mix(in srgb,var(--petal) 12%,transparent);border-radius:10px}
+@keyframes hbump{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.hmine.bump,.hboard li.me.bump{animation:none}}

@@ -17,7 +17,7 @@ export const PHOTOS = [
   "hyunmo-13.jpg",
   "hyunmo-14.jpg",
   "hyunmo-15.jpg",
-  "hyunmo-16.jpg",
+  "hyunmo-16.jpg", "hyunmo-17.jpg", "hyunmo-18.jpg", "hyunmo-19.jpg",
 ];
 
 // 사진이 바뀌는 간격 (초)
