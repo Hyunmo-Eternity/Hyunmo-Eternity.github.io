@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611090344";
-import { T, DISC } from "./i18n.js?v=202611090344";
-import * as PL from "./music/playlist.js?v=202611090344";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611092148";
+import { T, DISC } from "./i18n.js?v=202611092148";
+import * as PL from "./music/playlist.js?v=202611092148";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,14 +11,14 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611090344";
+import * as PH from "./photos.js?v=202611092148";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611090344";
-import { HOPE } from "./hope.js?v=202611090344";
-import { checkText } from "./filter.js?v=202611090344";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611090344";
-import * as TH from "./theme.js?v=202611090344";
-import * as GM from "./games.js?v=202611090344";
+import { QUIZ } from "./quiz.js?v=202611092148";
+import { HOPE } from "./hope.js?v=202611092148";
+import { checkText } from "./filter.js?v=202611092148";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611092148";
+import * as TH from "./theme.js?v=202611092148";
+import * as GM from "./games.js?v=202611092148";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
 /* ---------- 앱 설치 (홈 화면에 추가) ---------- */
@@ -1093,6 +1093,32 @@ function visitCountry() {
   return "XX";
 }
 function flagOf(cc) { return cc && cc !== "XX" ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : "🌏"; }
+/* ---------- 지금 접속자 간판 ---------- */
+// 2분마다 "나 여기 있어요" 표시를 남기고, 최근 5분 안에 표시를 남긴 사람 수를 세요. 관리자는 세지 않아요.
+let onlineN = null, onlineMine = false, onlineT = 0;
+async function beatOnline() {
+  if (!db || !user || document.hidden) return;
+  try {
+    if (!isAdmin) { await setDoc(doc(db, "online", user.uid), { at: serverTimestamp(), cc: myCountry }); onlineMine = true; }
+    const r = await getCountFromServer(query(collection(db, "online"), where("at", ">", new Date(Date.now() - 5 * 60e3))));
+    onlineN = r.data().count; renderOnline();
+  } catch (e) {}
+}
+function startOnline() {
+  clearInterval(onlineT); beatOnline(); onlineT = setInterval(beatOnline, 120e3);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) beatOnline(); });
+}
+function renderOnline() {
+  const el = $("opensign"); if (!el || onlineN === null) return;
+  const t = T[lang];
+  const others = Math.max(0, onlineN - (onlineMine && !isAdmin ? 1 : 0));   // 나를 뺀 방문객 수
+  const open = isAdmin ? onlineN > 0 : others > 0;
+  el.hidden = false; el.classList.toggle("closed", !open);
+  el.querySelector(".osign").textContent = open ? "OPEN" : "CLOSED";
+  el.querySelector(".otext").textContent = open ? t.on_open.replace("{n}", (isAdmin ? onlineN : onlineN).toLocaleString())
+    : (isAdmin ? t.on_closed : t.on_alone);
+}
+
 async function countVisit() {
   const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   try { if (localStorage.getItem("hm_visit") === day) return; } catch (e) {}
@@ -1286,7 +1312,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); renderAppCard(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); renderAppCard(); renderOnline(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -1809,7 +1835,7 @@ if (!configured) {
   onSnapshot(query(collection(db, "clips"), orderBy("date", "desc"), limit(200)), snap => {
     clips = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderClips();
   }, () => { clips = []; renderClips(); });
-  watchHearts(); watchEvents(); countVisit();
+  watchHearts(); watchEvents(); countVisit(); startOnline();
   onSnapshot(doc(db, "status", "live"), d => { live = d.exists() ? d.data() : null; renderLive(); }, () => {});
 
   // 방문자는 보이지 않게 익명 로그인 → 로그인 화면 없이 응원 메시지를 쓸 수 있어요
@@ -1818,7 +1844,7 @@ if (!configured) {
     user = u; isAdmin = false;
     if (!u.isAnonymous && u.email) isAdmin = await checkAdmin(u);
     try { const bd = await getDoc(doc(db, "banned", u.uid)); document.body.classList.toggle("banned", bd.exists()); } catch (e) {}
-    $("form").hidden = false;
+    $("form").hidden = false; beatOnline();
     syncMine(); renderNotes(); renderClips(); renderLive(); renderAdmin(); watchPending(); watchPhotoPending(); watchEvPending(); renderEvents(); loadVotes(); if (location.hash === "#request") loadRequests(true);
   });
 
