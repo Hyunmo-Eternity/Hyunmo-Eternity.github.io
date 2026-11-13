@@ -315,6 +315,7 @@ export async function mountTree(box, photos) {
 /* =========================================================
    3. 포근한 눈 마을 배경 (홈페이지 전체 뒤에서 움직여요)
    ========================================================= */
+const DEER_CAM = /[?&]deercam/.test(location.search);   // 순록 확인용 (주소 뒤에 ?deercam)
 export async function mountSnowWorld(box, opts = {}) {
   let T;
   try { T = await three(); } catch (e) { return null; }
@@ -330,7 +331,7 @@ export async function mountSnowWorld(box, opts = {}) {
 
   // 낮(포근한 분홍 눈 오는 날) / 밤(보랏빛 눈 내리는 밤) 색
   const PAL = {
-    day: { top: "#c9d6f3", mid: "#f4dbe6", low: "#ffeedd", fog: 0xf3e4ea, ground: 0xf8f8fd, hemiSky: 0xdfe6ff, hemiGnd: 0xffe4d6, sun: 0xfff0dd, win: 0xffc66b, sunI: 1.1, hemiI: 1.25 },
+    day: { top: "#26306b", mid: "#7a5a9e", low: "#f6b3c4", fog: 0xc7a9cf, ground: 0xeef0ff, hemiSky: 0xc9d2ff, hemiGnd: 0xffd2dc, sun: 0xffe2c4, win: 0xffc66b, sunI: 0.85, hemiI: 1.05 },
     night: { top: "#0f1430", mid: "#2b2552", low: "#5a3a62", fog: 0x2a2346, ground: 0xb9c3e6, hemiSky: 0x6070b8, hemiGnd: 0x3a2a4a, sun: 0xaab8ff, win: 0xffb347, sunI: 0.45, hemiI: 0.75 },
   };
   const isDark = () => document.documentElement.dataset.theme === "dark" || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
@@ -445,6 +446,83 @@ export async function mountSnowWorld(box, opts = {}) {
     l.position.set(x, y + 1.75, z); l.scale.setScalar(1.1); scene.add(l); lamps.push(l);
   }
 
+  // ---------- 화려한 크리스마스 불빛 ----------
+  // 모든 전구를 하나로 모아서 한 번에 그려요 (가볍게)
+  const bulbPos = [], bulbCol = [];
+  const BC = [[1, 0.25, 0.4], [1, 0.82, 0.25], [0.35, 0.75, 1], [0.45, 1, 0.55], [1, 1, 1], [0.95, 0.45, 1]];
+  const addBulb = (x, y, z, k) => { bulbPos.push(x, y, z); const c = BC[k % BC.length]; bulbCol.push(c[0], c[1], c[2]); };
+  // 1) 숲의 모든 나무에 나선형 전구
+  treeSpots.forEach((t, ti) => {
+    const gy = groundY(t.x, t.z), n = t.z > -70 ? 16 : 9;
+    for (let k = 0; k < n; k++) {
+      const u = k / n, hh = (1.0 + u * 3.1) * t.s, a = u * Math.PI * 2 * 3 + ti, rr = 1.25 * (1 - u * 0.78) * t.s * 1.02;
+      addBulb(t.x + Math.cos(a) * rr, gy + hh, t.z + Math.sin(a) * rr, k + ti);
+    }
+  });
+  // 2) 등불 사이를 잇는 전구 줄 (늘어진 줄처럼)
+  const posts = [];
+  for (let i = 0; i < 14; i++) { const z = -6 - i * 6, x = (i % 2 ? 4.2 : -4.2) + Math.sin(i) * 0.6; posts.push([x, groundY(x, z) + 1.6, z]); }
+  const garland = (A, B, n, sag, k0) => { for (let k = 0; k <= n; k++) { const u = k / n; addBulb(A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u - Math.sin(u * Math.PI) * sag, A[2] + (B[2] - A[2]) * u, k + k0); } };
+  for (let i = 0; i < posts.length - 2; i++) garland(posts[i], posts[i + 2], 12, 0.7, i);      // 같은 쪽 기둥끼리
+  for (let i = 0; i < posts.length - 1; i += 2) garland(posts[i], posts[i + 1], 14, 0.9, i * 3);  // 길을 가로질러
+  // 3) 오두막 지붕 테두리 전구
+  [[-9, -22, 0.4], [7, -30, -0.5], [-3, -46, 0.2], [16, -52, -0.3], [-17, -40, 0.6]].forEach(([x, z, r], hi) => {
+    const y = groundY(x, z), c = Math.cos(r), s = Math.sin(r);
+    const loc = (lx, ly, lz) => [x + lx * c + lz * s, y + ly, z - lx * s + lz * c];
+    for (let k = 0; k <= 10; k++) { const u = k / 10; for (const side of [-1, 1]) { const p = loc(-1.9 + 3.8 * u, 2.25, side * 1.6); addBulb(p[0], p[1], p[2], k + hi + (side > 0 ? 2 : 0)); } }
+    for (let k = 0; k <= 6; k++) { const u = k / 6; for (const side of [-1, 1]) { const p = loc(side * (1.9 - 1.9 * u), 2.25 + 1.6 * u, 1.45); addBulb(p[0], p[1], p[2], k + hi); } }
+  });
+  // 4) 마을 한가운데 거대한 빛의 트리
+  const BIG = { x: 0, z: -78, h: 15, r: 5.2 }, bgy = groundY(BIG.x, BIG.z);
+  for (let k = 0; k < (IOS ? 420 : 700); k++) {
+    const u = Math.pow(Math.random(), 0.85), a = Math.random() * Math.PI * 2, rr = BIG.r * (1 - u) * (0.85 + Math.random() * 0.15);
+    addBulb(BIG.x + Math.cos(a) * rr, bgy + u * BIG.h, BIG.z + Math.sin(a) * rr, k);
+  }
+  for (let k = 0; k < 160; k++) { const u = k / 160, a = u * Math.PI * 2 * 7; addBulb(BIG.x + Math.cos(a) * (BIG.r * (1 - u) + 0.2), bgy + u * BIG.h, BIG.z + Math.sin(a) * (BIG.r * (1 - u) + 0.2), 1); }
+  const bigStar = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xfff0a0, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+  bigStar.position.set(BIG.x, bgy + BIG.h + 0.8, BIG.z); bigStar.scale.setScalar(5); scene.add(bigStar);
+  const bigHalo = new T.Mesh(new T.CircleGeometry(9, 40), new T.MeshBasicMaterial({ map: glow, color: 0xffb3d0, transparent: true, opacity: 0.6, blending: T.AdditiveBlending, depthWrite: false }));
+  bigHalo.rotation.x = -Math.PI / 2; bigHalo.position.set(BIG.x, bgy + 0.05, BIG.z); scene.add(bigHalo);
+
+  const bulbN = bulbPos.length / 3, bulbBase = new Float32Array(bulbCol), bulbC = new Float32Array(bulbCol);
+  const bulbGeo = new T.BufferGeometry();
+  bulbGeo.setAttribute("position", new T.BufferAttribute(new Float32Array(bulbPos), 3));
+  bulbGeo.setAttribute("color", new T.BufferAttribute(bulbC, 3));
+  const bulbs = new T.Points(bulbGeo, new T.PointsMaterial({ size: 0.42, map: glow, vertexColors: true, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+  scene.add(bulbs);
+
+  // 5) 하늘: 반짝이는 별 · 오로라 빛 · 금가루
+  const SKY = 360, skyP = new Float32Array(SKY * 3);
+  for (let i = 0; i < SKY; i++) { const a = Math.random() * Math.PI - Math.PI, el = 0.12 + Math.random() * 0.75, R = 150; skyP[i * 3] = Math.cos(a) * Math.cos(el) * R * 1.6; skyP[i * 3 + 1] = Math.sin(el) * R * 0.55 + 10; skyP[i * 3 + 2] = Math.sin(a) * Math.cos(el) * R - 40; }
+  const skyGeo = new T.BufferGeometry(); skyGeo.setAttribute("position", new T.BufferAttribute(skyP, 3));
+  const skyStars = new T.Points(skyGeo, new T.PointsMaterial({ size: 1.1, map: glow, color: 0xffffff, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+  scene.add(skyStars);
+  const auroras = [];
+  [[0x52ffd1, -50, 46], [0xff7ad9, 10, 52], [0x7aa8ff, 60, 44]].forEach(([c, x, y], i) => {
+    const a = new T.Sprite(new T.SpriteMaterial({ map: glow, color: c, transparent: true, opacity: 0.22, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+    a.position.set(x, y, -150); a.scale.set(140, 34, 1); a.userData.ph = i * 2; scene.add(a); auroras.push(a);
+  });
+  const GL = IOS ? 160 : 260, glP = new Float32Array(GL * 3), glV = [];
+  for (let i = 0; i < GL; i++) { glP[i * 3] = (Math.random() - 0.5) * 30; glP[i * 3 + 1] = Math.random() * 12; glP[i * 3 + 2] = -Math.random() * 40 + 4; glV.push(0.2 + Math.random() * 0.4); }
+  const glGeo = new T.BufferGeometry(); glGeo.setAttribute("position", new T.BufferAttribute(glP, 3));
+  const glitter = new T.Points(glGeo, new T.PointsMaterial({ size: 0.16, map: glow, color: 0xffd76e, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false }));
+  scene.add(glitter);
+  // 6) 가끔 하늘에 터지는 불꽃
+  const FW = 90, fwP = new Float32Array(FW * 3), fwV = new Float32Array(FW * 3);
+  const fwGeo = new T.BufferGeometry(); fwGeo.setAttribute("position", new T.BufferAttribute(fwP, 3));
+  const fwMat = new T.PointsMaterial({ size: 0.9, map: glow, color: 0xff7ab8, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false });
+  scene.add(new T.Points(fwGeo, fwMat));
+  let fwT = 99, fwNext = 4;
+  function boom(cx, cy, cz) {
+    fwMat.color.setHex([0xff7ab8, 0xffd34d, 0x6fd3ff, 0x9dff8a, 0xd18bff][Math.floor(Math.random() * 5)]);
+    for (let i = 0; i < FW; i++) {
+      const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), v = 5 + Math.random() * 3;
+      fwP[i * 3] = cx; fwP[i * 3 + 1] = cy; fwP[i * 3 + 2] = cz;
+      fwV[i * 3] = Math.sin(ph) * Math.cos(th) * v; fwV[i * 3 + 1] = Math.cos(ph) * v; fwV[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * v;
+    }
+    fwT = 0;
+  }
+
   // 눈송이: 가까운 것 · 중간 · 먼 것 세 층
   const layers = [];
   [[IOS ? 500 : 800, 0.55, 14], [IOS ? 700 : 1100, 0.32, 34], [IOS ? 600 : 900, 0.2, 70]].forEach(([n, size, range]) => {
@@ -472,7 +550,7 @@ export async function mountSnowWorld(box, opts = {}) {
     scene.fog.color.setHex(p.fog); groundMat.color.setHex(p.ground);
     hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGnd); hemi.intensity = p.hemiI;
     sun.color.setHex(p.sun); sun.intensity = p.sunI; winMat.color.setHex(p.win);
-    lamps.forEach(l => l.material.opacity = isDark() ? 1 : 0.55); houses.forEach(h => h.scale.set(isDark() ? 4.2 : 3, isDark() ? 2.6 : 1.9, 1));
+    lamps.forEach(l => l.material.opacity = 0.95); houses.forEach(h => h.scale.set(4, 2.5, 1));
   }
   applyPalette();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyPalette);
@@ -481,35 +559,79 @@ export async function mountSnowWorld(box, opts = {}) {
   // ---------- 루돌프와 산타 ----------
   const mat = c => new T.MeshLambertMaterial({ color: c });
   const BROWN = mat(0x9a6440), LIGHT = mat(0xd9b48a), DARK = mat(0x4a2e20), ANT = mat(0xcaa070), BLACK = new T.MeshBasicMaterial({ color: 0x111111 });
+  // 순록: 깊은 가슴 · 흰 목털 · 관절 있는 다리 · 여러 갈래 뿔 (부드러운 털빛 그라데이션)
+  function paint(geo, top, bottom, y0, y1) {   // 위는 짙게, 배 쪽은 밝게
+    const p = geo.attributes.position, c = new Float32Array(p.count * 3), A = new T.Color(top), B = new T.Color(bottom), C = new T.Color();
+    for (let i = 0; i < p.count; i++) { const t = clamp((p.getY(i) - y0) / (y1 - y0), 0, 1); C.copy(B).lerp(A, t); c[i * 3] = C.r; c[i * 3 + 1] = C.g; c[i * 3 + 2] = C.b; }
+    geo.setAttribute("color", new T.BufferAttribute(c, 3)); geo.computeVertexNormals(); return geo;
+  }
+  const FUR = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+  const HOOF = new T.MeshStandardMaterial({ color: 0x2a1d16, roughness: 0.6 });
+  const BONE = new T.MeshStandardMaterial({ color: 0xd9c4a0, roughness: 0.7 });
+  const EYE = new T.MeshStandardMaterial({ color: 0x0c0a08, roughness: 0.2, metalness: 0.3 });
+  function antler(side) {
+    const g = new T.Group();
+    const tube = (pts, r) => { const c = new T.CatmullRomCurve3(pts.map(p => new T.Vector3(p[0], p[1], p[2] * side))); const geo = new T.TubeGeometry(c, 16, r, 6, false); return new T.Mesh(geo, BONE); };
+    // 큰 줄기: 뒤로 휘었다가 앞으로 굽어요
+    g.add(tube([[0, 0, 0], [-0.08, 0.25, 0.06], [-0.12, 0.55, 0.12], [-0.02, 0.85, 0.16], [0.14, 1.02, 0.12]], 0.028));
+    // 앞으로 뻗은 눈썹 가지 (넓적하게)
+    g.add(tube([[-0.02, 0.12, 0.03], [0.12, 0.2, 0.05], [0.24, 0.2, 0.02]], 0.022));
+    // 가지들
+    [[[-0.1, 0.42, 0.09], [-0.24, 0.58, 0.14], [-0.3, 0.7, 0.12]], [[-0.1, 0.62, 0.13], [0.0, 0.75, 0.24], [0.06, 0.82, 0.3]], [[-0.04, 0.82, 0.15], [-0.15, 0.98, 0.2], [-0.18, 1.08, 0.18]], [[0.06, 0.95, 0.14], [0.12, 1.1, 0.22], [0.1, 1.18, 0.26]]]
+      .forEach(pts => g.add(tube(pts, 0.016)));
+    return g;
+  }
   function reindeer(rudolph) {
     const g = new T.Group(), legs = [];
-    const body = new T.Mesh(new T.SphereGeometry(0.5, 14, 10), BROWN); body.scale.set(1.5, 0.85, 0.8); body.position.y = 1.15; g.add(body);
-    const belly = new T.Mesh(new T.SphereGeometry(0.42, 12, 8), LIGHT); belly.scale.set(1.3, 0.6, 0.72); belly.position.set(0, 1.0, 0); g.add(belly);
-    const neck = new T.Mesh(new T.CylinderGeometry(0.16, 0.22, 0.7, 8), BROWN); neck.position.set(0.62, 1.55, 0); neck.rotation.z = -0.6; g.add(neck);
-    const head = new T.Group(); head.position.set(0.88, 1.9, 0); g.add(head);
-    const skull = new T.Mesh(new T.SphereGeometry(0.26, 12, 10), BROWN); skull.scale.set(1.15, 1, 0.95); head.add(skull);
-    const snout = new T.Mesh(new T.SphereGeometry(0.16, 10, 8), LIGHT); snout.position.set(0.26, -0.07, 0); snout.scale.set(1.2, 0.85, 0.9); head.add(snout);
-    const nose = new T.Mesh(new T.SphereGeometry(rudolph ? 0.1 : 0.06, 10, 8), rudolph ? new T.MeshBasicMaterial({ color: 0xff2d3a }) : BLACK); nose.position.set(0.44, -0.04, 0); head.add(nose);
-    if (rudolph) { const ng = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xff3b4a, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); ng.scale.setScalar(1.1); nose.add(ng); g.userData.noseGlow = ng; }
-    for (const z of [-0.12, 0.12]) {
-      const eye = new T.Mesh(new T.SphereGeometry(0.04, 8, 6), BLACK); eye.position.set(0.18, 0.08, z); head.add(eye);
-      const ear = new T.Mesh(new T.ConeGeometry(0.07, 0.22, 6), BROWN); ear.position.set(-0.05, 0.2, z * 1.9); ear.rotation.set(z > 0 ? 0.9 : -0.9, 0, 0); head.add(ear);
-      const ant = new T.Group(); ant.position.set(-0.05, 0.22, z * 0.9); ant.rotation.set(z > 0 ? 0.35 : -0.35, 0, -0.25); head.add(ant);
-      const a1 = new T.Mesh(new T.CylinderGeometry(0.025, 0.035, 0.5, 5), ANT); a1.position.y = 0.25; ant.add(a1);
-      const a2 = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.22, 5), ANT); a2.position.set(0.08, 0.3, 0); a2.rotation.z = -0.9; ant.add(a2);
-      const a3 = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.2, 5), ANT); a3.position.set(-0.07, 0.42, 0); a3.rotation.z = 0.8; ant.add(a3);
+    const TOP = 0x5e4434, BELLY = 0xcdb79c;
+    // 몸통: 길쭉한 캡슐 + 깊은 가슴 + 엉덩이
+    const torso = new T.Mesh(paint(new T.CapsuleGeometry(0.33, 0.95, 8, 18).rotateZ(Math.PI / 2), TOP, BELLY, -0.3, 0.25), FUR); torso.position.y = 1.18; g.add(torso);
+    const chest = new T.Mesh(paint(new T.SphereGeometry(0.36, 18, 14), 0x6b4d3a, 0xe8dcc8, -0.35, 0.2), FUR); chest.position.set(0.48, 1.12, 0); chest.scale.set(1, 1.08, 0.92); g.add(chest);
+    const rump = new T.Mesh(paint(new T.SphereGeometry(0.34, 18, 14), TOP, 0xd9c8b0, -0.3, 0.25), FUR); rump.position.set(-0.52, 1.2, 0); g.add(rump);
+    const patch = new T.Mesh(new T.SphereGeometry(0.2, 12, 10), new T.MeshStandardMaterial({ color: 0xf2ece2, roughness: 1 })); patch.position.set(-0.8, 1.2, 0); patch.scale.set(0.42, 0.95, 0.72); g.add(patch);
+    const tail = new T.Mesh(new T.ConeGeometry(0.06, 0.16, 8), new T.MeshStandardMaterial({ color: 0xf5f0e8, roughness: 1 })); tail.position.set(-0.86, 1.3, 0); tail.rotation.z = 2.3; g.add(tail);
+    // 목: 두툼하게 위로, 아래엔 흰 갈기털
+    const neckG = new T.Group(); neckG.position.set(0.66, 1.32, 0); neckG.rotation.z = -0.75; g.add(neckG);
+    const neck = new T.Mesh(paint(new T.CylinderGeometry(0.13, 0.22, 0.62, 14), 0x6a4e3c, 0xb59c80, -0.3, 0.3), FUR); neck.position.y = 0.26; neckG.add(neck);
+    const mane = new T.Mesh(new T.ConeGeometry(0.16, 0.42, 10, 1, true), new T.MeshStandardMaterial({ color: 0xeee4d4, roughness: 1, side: T.DoubleSide }));
+    mane.position.set(-0.13, 0.12, 0); mane.rotation.z = 2.75; mane.scale.set(1, 1, 1.3); neckG.add(mane);
+    // 머리: 길쭉한 얼굴 · 넓은 주둥이
+    const head = new T.Group(); head.position.set(1.03, 1.78, 0); head.rotation.z = -0.35; g.add(head);
+    const skull = new T.Mesh(paint(new T.CapsuleGeometry(0.11, 0.26, 6, 14).rotateZ(Math.PI / 2), 0x6a4e3c, 0xa58b70, -0.12, 0.1), FUR); skull.position.x = 0.08; head.add(skull);
+    const muzzle = new T.Mesh(paint(new T.SphereGeometry(0.11, 14, 12), 0x8a6c55, 0xc8b49c, -0.1, 0.08), FUR); muzzle.position.set(0.3, -0.03, 0); muzzle.scale.set(1.1, 0.85, 1); head.add(muzzle);
+    const nose = new T.Mesh(new T.SphereGeometry(rudolph ? 0.075 : 0.05, 12, 10), rudolph ? new T.MeshBasicMaterial({ color: 0xff2d3a }) : new T.MeshStandardMaterial({ color: 0x1d1512, roughness: 0.3 }));
+    nose.position.set(0.41, -0.01, 0); head.add(nose);
+    if (rudolph) { const ng = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xff3b4a, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); ng.scale.setScalar(0.9); nose.add(ng); g.userData.noseGlow = ng; }
+    for (const z of [-1, 1]) {
+      const eye = new T.Mesh(new T.SphereGeometry(0.026, 10, 8), EYE); eye.position.set(0.1, 0.05, z * 0.1); head.add(eye);
+      const ear = new T.Mesh(paint(new T.SphereGeometry(0.08, 10, 8), 0x6a4e3c, 0xb59c80, -0.05, 0.05), FUR); ear.scale.set(0.45, 0.28, 1.15);
+      ear.position.set(-0.02, 0.07, z * 0.15); ear.rotation.set(z * 0.5, 0, 0.3); head.add(ear);
+      const an = antler(z); an.position.set(0.0, 0.08, z * 0.06); an.scale.setScalar(0.62); an.rotation.set(z * -0.25, 0, -0.15); head.add(an);
     }
-    for (const [x, z] of [[0.45, 0.2], [0.45, -0.2], [-0.45, 0.2], [-0.45, -0.2]]) {
-      const hip = new T.Group(); hip.position.set(x, 0.95, z); g.add(hip);
-      const leg = new T.Mesh(new T.CylinderGeometry(0.07, 0.06, 0.85, 6), BROWN); leg.position.y = -0.42; hip.add(leg);
-      const hoof = new T.Mesh(new T.CylinderGeometry(0.075, 0.08, 0.1, 6), DARK); hoof.position.y = -0.88; hip.add(hoof);
-      legs.push(hip);
+    // 다리: 위쪽(굵게) - 무릎 - 아래쪽(가늘게) - 발굽
+    for (const [x, z, front] of [[0.48, 0.17, 1], [0.48, -0.17, 1], [-0.52, 0.17, 0], [-0.52, -0.17, 0]]) {
+      const hip = new T.Group(); hip.position.set(x, 1.02, z); g.add(hip);
+      const up = new T.Mesh(paint(new T.CylinderGeometry(front ? 0.085 : 0.11, 0.05, 0.46, 10), 0x5e4434, 0x8a6e58, -0.23, 0.23), FUR); up.position.y = -0.21; hip.add(up);
+      const knee = new T.Group(); knee.position.y = -0.44; hip.add(knee);
+      const low = new T.Mesh(paint(new T.CylinderGeometry(0.042, 0.036, 0.44, 8), 0x7a624e, 0xe6ddd0, -0.22, 0.1), FUR); low.position.y = -0.22; knee.add(low);
+      const fet = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), new T.MeshStandardMaterial({ color: 0xece4d8, roughness: 1 })); fet.position.y = -0.43; knee.add(fet);
+      const hoof = new T.Mesh(new T.CylinderGeometry(0.05, 0.075, 0.09, 10), HOOF); hoof.position.set(0.02, -0.49, 0); knee.add(hoof);
+      legs.push({ hip, knee, front });
     }
-    const tail = new T.Mesh(new T.SphereGeometry(0.11, 8, 6), new T.MeshLambertMaterial({ color: 0xffffff })); tail.position.set(-0.75, 1.3, 0); g.add(tail);
-    const collar = new T.Mesh(new T.TorusGeometry(0.2, 0.05, 6, 14), mat(0xc8102e)); collar.position.set(0.66, 1.45, 0); collar.rotation.y = Math.PI / 2; collar.rotation.x = 0.6; g.add(collar);
-    const bell = new T.Mesh(new T.SphereGeometry(0.07, 8, 6), new T.MeshBasicMaterial({ color: 0xffd34d })); bell.position.set(0.8, 1.3, 0); g.add(bell);
-    g.userData.legs = legs; g.userData.head = head;
+    if (rudolph) {   // 루돌프는 빨간 리본 목걸이와 금방울
+      const collar = new T.Mesh(new T.TorusGeometry(0.17, 0.035, 8, 20), new T.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.5 })); collar.position.set(0.72, 1.42, 0); collar.rotation.set(0, Math.PI / 2, 0.75); g.add(collar);
+      const bell = new T.Mesh(new T.SphereGeometry(0.055, 12, 10), new T.MeshStandardMaterial({ color: 0xffd34d, metalness: 0.8, roughness: 0.25 })); bell.position.set(0.86, 1.3, 0); g.add(bell);
+    }
+    g.userData.legs = legs; g.userData.head = head; g.userData.neck = neckG;
     return g;
+  }
+  // 걷기 · 달리기 동작 (대각선 다리끼리 같이 움직여요)
+  function walkLegs(r, t, gallop) {
+    r.userData.legs.forEach((L, k) => {
+      const ph = t + (gallop ? (L.front ? 0 : Math.PI) + (k % 2) * 0.35 : ([0, Math.PI, Math.PI, 0][k]));
+      if (gallop) { L.hip.rotation.z = (L.front ? 0.55 : -0.55) + Math.sin(ph) * 0.55; L.knee.rotation.z = L.front ? -0.9 - Math.sin(ph) * 0.4 : 0.6 + Math.sin(ph) * 0.3; }
+      else { L.hip.rotation.z = Math.sin(ph) * 0.38; const lift = Math.max(0, -Math.cos(ph)); L.knee.rotation.z = L.front ? -lift * 0.9 : lift * 0.55; }
+    });
   }
   function santaSleigh() {
     const g = new T.Group(), RED = mat(0xc8102e), WHITE = mat(0xffffff), GOLD = new T.MeshLambertMaterial({ color: 0xe8b84a, emissive: 0x3a2400 }), SKIN = mat(0xffd2b0);
@@ -601,16 +723,17 @@ export async function mountSnowWorld(box, opts = {}) {
     team.rotateX(-Math.cos(ft) * 0.25);   // 돌 때 살짝 기울어요
     flyers.forEach((r, i) => {
       r.position.y = 0.35 + Math.sin(time * 6 + i) * 0.12;
-      r.userData.legs.forEach((l, k) => l.rotation.z = Math.sin(time * 9 + i + (k < 2 ? 0 : Math.PI)) * 0.7);
+      walkLegs(r, time * 9 + i * 0.7, true);
     });
     sleigh.userData.arm.rotation.x = -2.4 + Math.sin(time * 6) * 0.35;
     flyers[2].userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 5) * 0.4;
     // 땅 위 루돌프: 나무 사이를 왔다 갔다
     const WA = clamp(halfW(15) * 1.15, 4, 11), wz = cam.position.z - 15, wcyc = time * 0.09 % 2, goingRight = wcyc < 1, wx = goingRight ? -WA + wcyc * 2 * WA : WA - (wcyc - 1) * 2 * WA;
-    walker.position.set(wx, groundY(wx, wz) + 0.15 + Math.abs(Math.sin(time * 5)) * 0.08, wz);
+    walker.position.set(wx, groundY(wx, wz) + 0.02 + Math.abs(Math.sin(time * 4.2)) * 0.04, wz);
     walker.rotation.y = goingRight ? 0 : Math.PI;
-    walker.userData.legs.forEach((l, k) => l.rotation.z = Math.sin(time * 5 + (k % 2 ? 0 : Math.PI) + (k < 2 ? 0 : Math.PI / 2)) * 0.45);
-    walker.userData.head.rotation.z = Math.sin(time * 2.5) * 0.12;
+    walkLegs(walker, time * 4.2, false);
+    walker.userData.neck.rotation.z = -0.75 + Math.sin(time * 4.2 * 2) * 0.05;   // 걸을 때 고개가 끄덕끄덕
+    walker.userData.head.rotation.z = -0.35 + Math.sin(time * 4.2 * 2 + 0.6) * 0.06;
     walker.userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 4) * 0.4;
     // 말풍선: 산타와 루돌프가 번갈아 "메리 크리스마스!"
     if (time > nextShout && !bubbleWho) { bubbleWho = Math.random() < 0.6 ? "santa" : "rudolph"; bubbleUntil = time + 3.4; bubble.textContent = say(bubbleWho); bubble.classList.add("on"); }
@@ -618,11 +741,33 @@ export async function mountSnowWorld(box, opts = {}) {
       const target = bubbleWho === "santa" ? sleigh.userData.head : walker.userData.head;
       const v = target.getWorldPosition(new T.Vector3()).project(cam);
       if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) {
-        bubble.style.transform = `translate(${(v.x * 0.5 + 0.5) * innerWidth}px, ${(-v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, calc(-100% - 14px))`;
+        const bw = bubble.offsetWidth / 2 + 12, bx = clamp((v.x * 0.5 + 0.5) * innerWidth, bw, innerWidth - bw);   // 화면 밖으로 안 나가게
+        bubble.style.transform = `translate(${bx}px, ${Math.max(70, (-v.y * 0.5 + 0.5) * innerHeight)}px) translate(-50%, calc(-100% - 14px))`;
         bubble.style.visibility = "visible";
       } else bubble.style.visibility = "hidden";
       if (time > bubbleUntil) { bubble.classList.remove("on"); bubbleWho = null; nextShout = time + 5 + Math.random() * 4; }
     }
+    // 화려한 불빛 반짝반짝
+    for (let i = (Math.floor(time * 60) % 3); i < bulbN; i += 3) {
+      const k = 0.35 + 0.65 * Math.max(0, Math.sin(time * 2.6 + i * 0.91));
+      bulbC[i * 3] = bulbBase[i * 3] * k; bulbC[i * 3 + 1] = bulbBase[i * 3 + 1] * k; bulbC[i * 3 + 2] = bulbBase[i * 3 + 2] * k;
+    }
+    bulbGeo.attributes.color.needsUpdate = true;
+    bigStar.scale.setScalar(5 + Math.sin(time * 3) * 0.8); bigHalo.material.opacity = 0.45 + Math.sin(time * 1.5) * 0.15;
+    skyStars.material.opacity = 0.75 + Math.sin(time * 1.7) * 0.2;
+    auroras.forEach(a => { a.position.x += Math.sin(time * 0.1 + a.userData.ph) * 0.03; a.material.opacity = 0.16 + Math.sin(time * 0.4 + a.userData.ph) * 0.08; });
+    for (let i = 0; i < GL; i++) {
+      glP[i * 3 + 1] += glV[i] * dt; glP[i * 3] += Math.sin(time + i) * dt * 0.2;
+      if (glP[i * 3 + 1] > 12) { glP[i * 3 + 1] = 0; glP[i * 3 + 2] = cam.position.z - Math.random() * 40 + 4; }
+    }
+    glGeo.attributes.position.needsUpdate = true;
+    if (time > fwNext) { boom((Math.random() - 0.5) * 30, 18 + Math.random() * 8, cam.position.z - 55 - Math.random() * 20); fwNext = time + 5 + Math.random() * 5; }
+    if (fwT < 2.2) {
+      fwT += dt;
+      for (let i = 0; i < FW; i++) { fwV[i * 3 + 1] -= 3.5 * dt; fwP[i * 3] += fwV[i * 3] * dt; fwP[i * 3 + 1] += fwV[i * 3 + 1] * dt; fwP[i * 3 + 2] += fwV[i * 3 + 2] * dt; }
+      fwGeo.attributes.position.needsUpdate = true; fwMat.opacity = Math.max(0, 1 - fwT / 2.2);
+    }
+    if (DEER_CAM) { cam.position.set(walker.position.x + 2.6, walker.position.y + 1.6, walker.position.z + 3.2); cam.lookAt(walker.position.x, walker.position.y + 1.1, walker.position.z); }
     renderer.render(scene, cam);
     raf = requestAnimationFrame(loop);
   }

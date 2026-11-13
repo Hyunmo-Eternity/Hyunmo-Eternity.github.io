@@ -970,3 +970,9 @@ html,body{overflow-x:clip}
 .introon .sw-bubble{display:none}
 .snow3d .xsleigh{display:none}
 .snowworld::after{background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.12) 60%,rgba(255,248,250,.3))}
+/* 화려한 저녁 마을 위에서도 글씨가 잘 보이게 */
+.snowworld::after{background:linear-gradient(180deg,rgba(20,16,50,0) 0%,rgba(20,16,50,0) 70%,rgba(20,16,50,.18) 100%)}
+.snow3d .kicker,.snow3d .tag{display:inline-block;padding:4px 14px;border-radius:999px;background:color-mix(in srgb,var(--paper) 82%,transparent);box-shadow:0 4px 14px rgba(20,10,40,.18)}
+.snow3d .tag{margin-inline:auto}
+.snow3d .hero{text-align:center}
+.sw-bubble{max-width:calc(100vw - 32px);white-space:normal;text-align:center}
