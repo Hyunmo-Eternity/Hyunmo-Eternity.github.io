@@ -961,3 +961,12 @@ html,body{overflow-x:clip}
 /* 눈 속 카드: 살짝 비치는 서리 유리처럼 */
 .snow3d section{background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 :root.ios.snow3d section{backdrop-filter:none;-webkit-backdrop-filter:none;background:color-mix(in srgb,var(--paper) 93%,transparent)}
+/* 산타 · 루돌프 말풍선 */
+.sw-bubble{position:fixed;left:0;top:0;z-index:5;pointer-events:none;white-space:nowrap;font-weight:800;font-size:15px;color:#C8102E;
+  background:#fff;border-radius:18px;padding:8px 14px;box-shadow:0 8px 22px rgba(120,20,50,.25);opacity:0;transition:opacity .35s ease;will-change:transform}
+.sw-bubble::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-7px;border:7px solid transparent;border-bottom:0;border-top-color:#fff}
+.sw-bubble.on{opacity:1;animation:swpop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes swpop{0%{scale:.6}100%{scale:1}}
+.introon .sw-bubble{display:none}
+.snow3d .xsleigh{display:none}
+.snowworld::after{background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.12) 60%,rgba(255,248,250,.3))}

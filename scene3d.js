@@ -315,7 +315,7 @@ export async function mountTree(box, photos) {
 /* =========================================================
    3. 포근한 눈 마을 배경 (홈페이지 전체 뒤에서 움직여요)
    ========================================================= */
-export async function mountSnowWorld(box) {
+export async function mountSnowWorld(box, opts = {}) {
   let T;
   try { T = await three(); } catch (e) { return null; }
   const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "low-power" });
@@ -336,7 +336,7 @@ export async function mountSnowWorld(box) {
   const isDark = () => document.documentElement.dataset.theme === "dark" || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
   const skyCv = document.createElement("canvas"); skyCv.width = 4; skyCv.height = 256;
   const skyTex = new T.CanvasTexture(skyCv); skyTex.colorSpace = T.SRGBColorSpace; scene.background = skyTex;
-  scene.fog = new T.FogExp2(0xffffff, 0.022);
+  scene.fog = new T.FogExp2(0xffffff, 0.0125);
   const hemi = new T.HemisphereLight(0xffffff, 0xffffff, 1); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffffff, 1); sun.position.set(-20, 30, 10); scene.add(sun);
 
@@ -352,25 +352,67 @@ export async function mountSnowWorld(box) {
   scene.add(new T.Mesh(gGeo, groundMat));
   const groundY = (x, z) => Math.sin(x * 0.06) * 1.6 + Math.cos(z * 0.05 + x * 0.02) * 2.2 + Math.sin((x + z) * 0.12) * 0.5 + Math.max(0, -z - 40) * 0.08;
 
-  // 눈 쌓인 전나무 (한꺼번에 그려서 가볍게)
-  const TN = IOS ? 46 : 70;
-  const coneG = new T.ConeGeometry(1, 1, 7), capG = new T.ConeGeometry(1, 1, 7);
-  const green = new T.InstancedMesh(coneG, new T.MeshLambertMaterial({ color: 0x2f6b4f, flatShading: true }), TN * 3);
-  const caps = new T.InstancedMesh(capG, new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), TN * 3);
-  const trunkM = new T.InstancedMesh(new T.CylinderGeometry(0.18, 0.22, 1, 6), new T.MeshLambertMaterial({ color: 0x6b4a36 }), TN);
   const M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), P = new T.Vector3();
-  for (let i = 0; i < TN; i++) {
-    let x, z;
-    do { x = (Math.random() - 0.5) * 140; z = -8 - Math.random() * 110; } while (Math.abs(x) < 7 && z > -40);
-    const h = 3 + Math.random() * 4, y = groundY(x, z);
-    trunkM.setMatrixAt(i, M.compose(P.set(x, y + 0.4, z), Q.identity(), S.set(1, 0.9, 1)));
-    for (let k = 0; k < 3; k++) {
-      const s = (1 - k * 0.27) * h * 0.38, yy = y + 0.8 + k * h * 0.27 + h * 0.18;
-      green.setMatrixAt(i * 3 + k, M.compose(P.set(x, yy, z), Q.identity(), S.set(s, h * 0.34, s)));
-      caps.setMatrixAt(i * 3 + k, M.compose(P.set(x, yy + h * 0.1, z), Q.identity(), S.set(s * 0.62, h * 0.16, s * 0.62)));
-    }
+  // 눈 쌓인 전나무: 층층이 뾰족한 가지 + 가지마다 소복이 쌓인 눈 (한 번에 그려서 가벼워요)
+  function mergeGeos(list) {
+    let n = 0; list.forEach(([g]) => n += g.attributes.position.count);
+    const pos = new Float32Array(n * 3), colr = new Float32Array(n * 3); let o = 0;
+    list.forEach(([g, c]) => {
+      const p = g.attributes.position.array; pos.set(p, o * 3);
+      for (let i = 0; i < g.attributes.position.count; i++) { colr[(o + i) * 3] = c.r; colr[(o + i) * 3 + 1] = c.g; colr[(o + i) * 3 + 2] = c.b; }
+      o += g.attributes.position.count;
+    });
+    const out = new T.BufferGeometry(); out.setAttribute("position", new T.BufferAttribute(pos, 3)); out.setAttribute("color", new T.BufferAttribute(colr, 3));
+    out.computeVertexNormals(); return out;
   }
-  scene.add(green, caps, trunkM);
+  function jag(g, amt, seed) {   // 아래쪽 테두리를 들쭉날쭉하게 = 가지 끝
+    const p = g.attributes.position, h = g.parameters.height;
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i);
+      if (y < -h / 2 + 0.001) { const k = 1 + (i % 2 ? amt : -amt * 0.5) + Math.sin(i * 12.9898 + seed) * amt * 0.4; p.setX(i, p.getX(i) * k); p.setZ(i, p.getZ(i) * k); p.setY(i, y - (i % 2 ? amt * 0.35 : 0)); }
+    }
+    return g;
+  }
+  function pineGeo(seed) {
+    const parts = [], G = new T.Color(0x2c6a4a), G2 = new T.Color(0x245c40), W = new T.Color(0xffffff), B = new T.Color(0x5a3a28);
+    const trunk = new T.CylinderGeometry(0.12, 0.18, 1.2, 7).toNonIndexed(); trunk.translate(0, 0.6, 0); parts.push([trunk, B]);
+    const tiers = 5;
+    for (let k = 0; k < tiers; k++) {
+      const t = k / tiers, r = 1.25 * (1 - t * 0.78), h = 1.15 - t * 0.25, y = 1.0 + k * 0.62;
+      const cone = jag(new T.ConeGeometry(r, h, 12, 1), 0.22, seed + k).toNonIndexed(); cone.translate(0, y + h / 2, 0); parts.push([cone, k % 2 ? G2 : G]);
+      const snow = jag(new T.ConeGeometry(r * 0.78, h * 0.55, 12, 1), 0.18, seed + k + 3).toNonIndexed(); snow.translate(0, y + h * 0.78, 0); parts.push([snow, W]);
+    }
+    const tip = new T.ConeGeometry(0.18, 0.5, 8).toNonIndexed(); tip.translate(0, 1.0 + tiers * 0.62 + 0.3, 0); parts.push([tip, W]);
+    return mergeGeos(parts);
+  }
+  const TN = IOS ? 60 : 95, treeSpots = [];
+  for (let i = 0; i < TN; i++) {
+    let x, z, tries = 0;
+    do { x = (Math.random() - 0.5) * 150; z = -6 - Math.random() * 115; tries++; }
+    while (tries < 30 && ((Math.abs(x) < 5.4 && z > -95) || treeSpots.some(t => (t.x - x) ** 2 + (t.z - z) ** 2 < 9)));
+    treeSpots.push({ x, z, s: 1.4 + Math.random() * 1.6, r: Math.random() * 6.28, tilt: (Math.random() - 0.5) * 0.08 });
+  }
+  const treeMat = new T.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  [0, 1].forEach(v => {
+    const list = treeSpots.filter((_, i) => i % 2 === v);
+    const im = new T.InstancedMesh(pineGeo(v * 7.7), treeMat, list.length);
+    const col = new T.Color();
+    list.forEach((t, i) => {
+      Q.setFromEuler(new T.Euler(t.tilt, t.r, t.tilt * 0.6));
+      im.setMatrixAt(i, M.compose(P.set(t.x, groundY(t.x, t.z) - 0.1, t.z), Q, S.set(t.s, t.s * (0.9 + Math.random() * 0.3), t.s)));
+      im.setColorAt(i, col.setHSL(0.36 + Math.random() * 0.06, 0.35 + Math.random() * 0.2, 0.75 + Math.random() * 0.25));
+    });
+    scene.add(im);
+  });
+  // 길가 나무 몇 그루엔 반짝이 전구
+  const twinkles = [];
+  treeSpots.filter(t => t.z > -60 && Math.abs(t.x) < 22).slice(0, 8).forEach(t => {
+    for (let k = 0; k < 9; k++) {
+      const hh = 1.2 + k * 0.42, a = k * 2.4, rr = 1.2 * (1 - (hh - 1) / 3.6) * t.s * 0.95;
+      const l = new T.Sprite(new T.SpriteMaterial({ map: glow, color: [0xff5a7a, 0xffd34d, 0x6fc8ff, 0xffffff][k % 4], transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+      l.position.set(t.x + Math.cos(a) * rr, groundY(t.x, t.z) + hh * t.s, t.z + Math.sin(a) * rr); l.scale.setScalar(0.55); scene.add(l); twinkles.push(l);
+    }
+  });
 
   // 따뜻한 불빛이 새어 나오는 오두막
   const houses = [], smokes = [];
@@ -385,7 +427,7 @@ export async function mountSnowWorld(box) {
     for (const wx of [-0.8, 0.8]) { const w = new T.Mesh(new T.PlaneGeometry(0.7, 0.7), winMat); w.position.set(wx, 1.2, 1.41); g.add(w); }
     const door = new T.Mesh(new T.PlaneGeometry(0.6, 1.1), new T.MeshLambertMaterial({ color: 0x6b3f2e })); door.position.set(0, 0.55, 1.41); g.add(door);
     const halo = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffb35c, transparent: true, opacity: 0.55, blending: T.AdditiveBlending, depthWrite: false }));
-    halo.position.set(0, 1.2, 1.7); halo.scale.set(4.2, 2.6, 1); g.add(halo);
+    halo.position.set(0, 1.2, 1.7); halo.scale.set(3, 1.9, 1); g.add(halo);
     g.position.set(x, y, z); g.rotation.y = r; scene.add(g); houses.push(halo);
     for (let k = 0; k < 6; k++) {
       const sm = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
@@ -400,7 +442,7 @@ export async function mountSnowWorld(box) {
     const z = -6 - i * 6, x = (i % 2 ? 4.2 : -4.2) + Math.sin(i) * 0.6, y = groundY(x, z);
     const post = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, 1.6, 5), chimMat); post.position.set(x, y + 0.8, z); scene.add(post);
     const l = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffcf7a, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false }));
-    l.position.set(x, y + 1.75, z); l.scale.setScalar(1.6); scene.add(l); lamps.push(l);
+    l.position.set(x, y + 1.75, z); l.scale.setScalar(1.1); scene.add(l); lamps.push(l);
   }
 
   // 눈송이: 가까운 것 · 중간 · 먼 것 세 층
@@ -417,7 +459,7 @@ export async function mountSnowWorld(box) {
   const bokeh = [];
   const bCols = [0xffc2d6, 0xffe2a8, 0xcfe0ff, 0xffd0b5];
   for (let i = 0; i < 10; i++) {
-    const b = new T.Sprite(new T.SpriteMaterial({ map: glow, color: bCols[i % 4], transparent: true, opacity: 0.18, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+    const b = new T.Sprite(new T.SpriteMaterial({ map: glow, color: bCols[i % 4], transparent: true, opacity: 0.1, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
     b.userData = { x: (Math.random() - 0.5) * 16, y: 2 + Math.random() * 7, z: -2 - Math.random() * 6, ph: Math.random() * 6 };
     b.scale.setScalar(1.5 + Math.random() * 2.5); scene.add(b); bokeh.push(b);
   }
@@ -430,16 +472,93 @@ export async function mountSnowWorld(box) {
     scene.fog.color.setHex(p.fog); groundMat.color.setHex(p.ground);
     hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGnd); hemi.intensity = p.hemiI;
     sun.color.setHex(p.sun); sun.intensity = p.sunI; winMat.color.setHex(p.win);
-    lamps.forEach(l => l.material.opacity = isDark() ? 1 : 0.75);
+    lamps.forEach(l => l.material.opacity = isDark() ? 1 : 0.55); houses.forEach(h => h.scale.set(isDark() ? 4.2 : 3, isDark() ? 2.6 : 1.9, 1));
   }
   applyPalette();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyPalette);
   new MutationObserver(applyPalette).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
+  // ---------- 루돌프와 산타 ----------
+  const mat = c => new T.MeshLambertMaterial({ color: c });
+  const BROWN = mat(0x9a6440), LIGHT = mat(0xd9b48a), DARK = mat(0x4a2e20), ANT = mat(0xcaa070), BLACK = new T.MeshBasicMaterial({ color: 0x111111 });
+  function reindeer(rudolph) {
+    const g = new T.Group(), legs = [];
+    const body = new T.Mesh(new T.SphereGeometry(0.5, 14, 10), BROWN); body.scale.set(1.5, 0.85, 0.8); body.position.y = 1.15; g.add(body);
+    const belly = new T.Mesh(new T.SphereGeometry(0.42, 12, 8), LIGHT); belly.scale.set(1.3, 0.6, 0.72); belly.position.set(0, 1.0, 0); g.add(belly);
+    const neck = new T.Mesh(new T.CylinderGeometry(0.16, 0.22, 0.7, 8), BROWN); neck.position.set(0.62, 1.55, 0); neck.rotation.z = -0.6; g.add(neck);
+    const head = new T.Group(); head.position.set(0.88, 1.9, 0); g.add(head);
+    const skull = new T.Mesh(new T.SphereGeometry(0.26, 12, 10), BROWN); skull.scale.set(1.15, 1, 0.95); head.add(skull);
+    const snout = new T.Mesh(new T.SphereGeometry(0.16, 10, 8), LIGHT); snout.position.set(0.26, -0.07, 0); snout.scale.set(1.2, 0.85, 0.9); head.add(snout);
+    const nose = new T.Mesh(new T.SphereGeometry(rudolph ? 0.1 : 0.06, 10, 8), rudolph ? new T.MeshBasicMaterial({ color: 0xff2d3a }) : BLACK); nose.position.set(0.44, -0.04, 0); head.add(nose);
+    if (rudolph) { const ng = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xff3b4a, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); ng.scale.setScalar(1.1); nose.add(ng); g.userData.noseGlow = ng; }
+    for (const z of [-0.12, 0.12]) {
+      const eye = new T.Mesh(new T.SphereGeometry(0.04, 8, 6), BLACK); eye.position.set(0.18, 0.08, z); head.add(eye);
+      const ear = new T.Mesh(new T.ConeGeometry(0.07, 0.22, 6), BROWN); ear.position.set(-0.05, 0.2, z * 1.9); ear.rotation.set(z > 0 ? 0.9 : -0.9, 0, 0); head.add(ear);
+      const ant = new T.Group(); ant.position.set(-0.05, 0.22, z * 0.9); ant.rotation.set(z > 0 ? 0.35 : -0.35, 0, -0.25); head.add(ant);
+      const a1 = new T.Mesh(new T.CylinderGeometry(0.025, 0.035, 0.5, 5), ANT); a1.position.y = 0.25; ant.add(a1);
+      const a2 = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.22, 5), ANT); a2.position.set(0.08, 0.3, 0); a2.rotation.z = -0.9; ant.add(a2);
+      const a3 = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.2, 5), ANT); a3.position.set(-0.07, 0.42, 0); a3.rotation.z = 0.8; ant.add(a3);
+    }
+    for (const [x, z] of [[0.45, 0.2], [0.45, -0.2], [-0.45, 0.2], [-0.45, -0.2]]) {
+      const hip = new T.Group(); hip.position.set(x, 0.95, z); g.add(hip);
+      const leg = new T.Mesh(new T.CylinderGeometry(0.07, 0.06, 0.85, 6), BROWN); leg.position.y = -0.42; hip.add(leg);
+      const hoof = new T.Mesh(new T.CylinderGeometry(0.075, 0.08, 0.1, 6), DARK); hoof.position.y = -0.88; hip.add(hoof);
+      legs.push(hip);
+    }
+    const tail = new T.Mesh(new T.SphereGeometry(0.11, 8, 6), new T.MeshLambertMaterial({ color: 0xffffff })); tail.position.set(-0.75, 1.3, 0); g.add(tail);
+    const collar = new T.Mesh(new T.TorusGeometry(0.2, 0.05, 6, 14), mat(0xc8102e)); collar.position.set(0.66, 1.45, 0); collar.rotation.y = Math.PI / 2; collar.rotation.x = 0.6; g.add(collar);
+    const bell = new T.Mesh(new T.SphereGeometry(0.07, 8, 6), new T.MeshBasicMaterial({ color: 0xffd34d })); bell.position.set(0.8, 1.3, 0); g.add(bell);
+    g.userData.legs = legs; g.userData.head = head;
+    return g;
+  }
+  function santaSleigh() {
+    const g = new T.Group(), RED = mat(0xc8102e), WHITE = mat(0xffffff), GOLD = new T.MeshLambertMaterial({ color: 0xe8b84a, emissive: 0x3a2400 }), SKIN = mat(0xffd2b0);
+    const base = new T.Mesh(new T.BoxGeometry(1.9, 0.5, 1.1), RED); base.position.y = 0.55; g.add(base);
+    const back = new T.Mesh(new T.BoxGeometry(0.35, 0.8, 1.1), RED); back.position.set(-0.85, 0.95, 0); g.add(back);
+    const front = new T.Mesh(new T.CylinderGeometry(0.28, 0.28, 1.1, 12, 1, false, 0, Math.PI), RED); front.rotation.x = Math.PI / 2; front.position.set(0.92, 0.6, 0); g.add(front);
+    const trim = new T.Mesh(new T.BoxGeometry(1.95, 0.08, 1.14), GOLD); trim.position.y = 0.82; g.add(trim);
+    for (const z of [-0.45, 0.45]) {
+      const run = new T.Mesh(new T.TorusGeometry(1.05, 0.05, 6, 20, Math.PI * 0.55), GOLD); run.position.set(0.1, 0.9, z); run.rotation.z = Math.PI * 1.22; g.add(run);
+      const bar = new T.Mesh(new T.CylinderGeometry(0.04, 0.04, 1.9, 6), GOLD); bar.rotation.z = Math.PI / 2; bar.position.set(0, 0.1, z); g.add(bar);
+    }
+    const sack = new T.Mesh(new T.SphereGeometry(0.42, 12, 10), mat(0x8a5a3a)); sack.position.set(-0.55, 1.15, 0); sack.scale.set(1, 1.15, 1); g.add(sack);
+    [[0xffd34d, -0.1, 0.25], [0x2e9e5b, 0.1, -0.25], [0x6fa8ff, -0.25, -0.15]].forEach(([c, x, z]) => { const b = new T.Mesh(new T.BoxGeometry(0.3, 0.3, 0.3), mat(c)); b.position.set(-0.55 + x, 1.55, z); b.rotation.y = x * 3; g.add(b); });
+    const santa = new T.Group(); santa.position.set(0.2, 0.8, 0); g.add(santa);
+    const body = new T.Mesh(new T.SphereGeometry(0.42, 14, 10), RED); body.scale.set(1, 1.1, 1); body.position.y = 0.45; santa.add(body);
+    const belt = new T.Mesh(new T.TorusGeometry(0.4, 0.06, 6, 18), mat(0x222222)); belt.rotation.x = Math.PI / 2; belt.position.y = 0.4; santa.add(belt);
+    const head = new T.Mesh(new T.SphereGeometry(0.24, 12, 10), SKIN); head.position.y = 1.05; santa.add(head);
+    const beard = new T.Mesh(new T.SphereGeometry(0.24, 12, 10, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), WHITE); beard.position.set(0.05, 1.0, 0); beard.scale.set(1.1, 1.3, 1.05); santa.add(beard);
+    const hat = new T.Mesh(new T.ConeGeometry(0.24, 0.5, 12), RED); hat.position.set(-0.04, 1.4, 0); hat.rotation.z = 0.35; santa.add(hat);
+    const brim = new T.Mesh(new T.TorusGeometry(0.22, 0.06, 6, 16), WHITE); brim.rotation.x = Math.PI / 2; brim.position.y = 1.2; santa.add(brim);
+    const pom = new T.Mesh(new T.SphereGeometry(0.08, 8, 6), WHITE); pom.position.set(-0.2, 1.62, 0); santa.add(pom);
+    for (const z of [-0.12, 0.12]) { const e = new T.Mesh(new T.SphereGeometry(0.03, 6, 5), BLACK); e.position.set(0.22, 1.1, z); santa.add(e); }
+    const nose = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), mat(0xff9a8a)); nose.position.set(0.25, 1.04, 0); santa.add(nose);
+    const arm = new T.Group(); arm.position.set(0.05, 0.75, 0.38); santa.add(arm);   // 손 흔드는 팔
+    const sleeve = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 0.55, 8), RED); sleeve.position.y = 0.27; arm.add(sleeve);
+    const mit = new T.Mesh(new T.SphereGeometry(0.1, 8, 6), mat(0x2e7d4f)); mit.position.y = 0.58; arm.add(mit);
+    g.userData.arm = arm; g.userData.head = head;
+    return g;
+  }
+  const team = new T.Group(); scene.add(team);
+  const sleigh = santaSleigh(); team.add(sleigh);
+  const flyers = [];
+  [[2.7, 0.55, false], [2.7, -0.55, false], [4.5, 0, true]].forEach(([x, z, rud]) => { const r = reindeer(rud); r.position.set(x, 0.35, z); r.scale.setScalar(0.85); team.add(r); flyers.push(r); });
+  const reinMat = new T.LineBasicMaterial({ color: 0xe8b84a });
+  const reins = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(1.0, 1.0, 0.3), new T.Vector3(2.9, 1.7, 0.5), new T.Vector3(4.6, 1.9, 0), new T.Vector3(2.9, 1.7, -0.5), new T.Vector3(1.0, 1.0, -0.3)]), reinMat);
+  team.add(reins);
+  // 땅 위를 걸어 다니는 루돌프
+  const walker = reindeer(true); walker.scale.setScalar(1.05); scene.add(walker);
+
+  // 말풍선 (메리 크리스마스!)
+  const bubble = document.createElement("div"); bubble.className = "sw-bubble"; bubble.setAttribute("aria-hidden", "true"); document.body.appendChild(bubble);
+  const say = opts.say || (k => k === "santa" ? "Ho Ho Ho! Merry Christmas! 🎅" : "Merry Christmas! 🦌");
+  let bubbleWho = null, bubbleUntil = 0, nextShout = 3;
+
   // 마우스 · 기울기 · 스크롤에 따라 천천히 움직이는 카메라
   let mx = 0, my = 0, tmx = 0, tmy = 0, sc = 0;
   addEventListener("pointermove", e => { tmx = e.clientX / innerWidth - 0.5; tmy = e.clientY / innerHeight - 0.5; }, { passive: true });
-  addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+  const fit = () => { cam.aspect = innerWidth / innerHeight; cam.fov = cam.aspect < 1 ? 68 : 55; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); };
+  fit(); addEventListener("resize", fit);
 
   let raf = 0, last = performance.now(), time = 0, on = true;
   function loop(now) {
@@ -468,6 +587,42 @@ export async function mountSnowWorld(box) {
     });
     houses.forEach((h, i) => h.material.opacity = 0.45 + Math.sin(time * 2.2 + i * 1.3) * 0.08 + Math.sin(time * 7.1 + i) * 0.04);  // 벽난로 불빛처럼 일렁여요
     bokeh.forEach(b => { const u = b.userData; b.position.set(cam.position.x + u.x + Math.sin(time * 0.3 + u.ph) * 1.2, u.y + Math.cos(time * 0.25 + u.ph) * 0.8, cam.position.z + u.z); });
+    // 반짝이 전구
+    twinkles.forEach((l, i) => l.material.opacity = 0.55 + 0.45 * Math.sin(time * 3 + i * 1.7));
+    // 산타 썰매: 마을 위를 8자로 날아다니며 왔다 갔다
+    const zc = cam.position.z - 26, ft = time * 0.16;
+    const halfW = d => d * Math.tan(cam.fov * Math.PI / 360) * cam.aspect;
+    const A = clamp(halfW(26) * 1.25, 7, 22);
+    const fp = (u, o) => o.set(Math.sin(u) * A, 7.5 + Math.sin(u * 2) * 1.4, zc + Math.sin(u * 2) * 7);
+    const p0 = fp(ft, new T.Vector3()), p1 = fp(ft + 0.03, new T.Vector3());
+    team.position.copy(p0);
+    const dir = p1.sub(p0), yaw = Math.atan2(-dir.z, dir.x);
+    team.rotation.set(0, yaw, 0); team.rotateZ(Math.atan2(dir.y, Math.hypot(dir.x, dir.z)));
+    team.rotateX(-Math.cos(ft) * 0.25);   // 돌 때 살짝 기울어요
+    flyers.forEach((r, i) => {
+      r.position.y = 0.35 + Math.sin(time * 6 + i) * 0.12;
+      r.userData.legs.forEach((l, k) => l.rotation.z = Math.sin(time * 9 + i + (k < 2 ? 0 : Math.PI)) * 0.7);
+    });
+    sleigh.userData.arm.rotation.x = -2.4 + Math.sin(time * 6) * 0.35;
+    flyers[2].userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 5) * 0.4;
+    // 땅 위 루돌프: 나무 사이를 왔다 갔다
+    const WA = clamp(halfW(15) * 1.15, 4, 11), wz = cam.position.z - 15, wcyc = time * 0.09 % 2, goingRight = wcyc < 1, wx = goingRight ? -WA + wcyc * 2 * WA : WA - (wcyc - 1) * 2 * WA;
+    walker.position.set(wx, groundY(wx, wz) + 0.15 + Math.abs(Math.sin(time * 5)) * 0.08, wz);
+    walker.rotation.y = goingRight ? 0 : Math.PI;
+    walker.userData.legs.forEach((l, k) => l.rotation.z = Math.sin(time * 5 + (k % 2 ? 0 : Math.PI) + (k < 2 ? 0 : Math.PI / 2)) * 0.45);
+    walker.userData.head.rotation.z = Math.sin(time * 2.5) * 0.12;
+    walker.userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 4) * 0.4;
+    // 말풍선: 산타와 루돌프가 번갈아 "메리 크리스마스!"
+    if (time > nextShout && !bubbleWho) { bubbleWho = Math.random() < 0.6 ? "santa" : "rudolph"; bubbleUntil = time + 3.4; bubble.textContent = say(bubbleWho); bubble.classList.add("on"); }
+    if (bubbleWho) {
+      const target = bubbleWho === "santa" ? sleigh.userData.head : walker.userData.head;
+      const v = target.getWorldPosition(new T.Vector3()).project(cam);
+      if (v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1) {
+        bubble.style.transform = `translate(${(v.x * 0.5 + 0.5) * innerWidth}px, ${(-v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, calc(-100% - 14px))`;
+        bubble.style.visibility = "visible";
+      } else bubble.style.visibility = "hidden";
+      if (time > bubbleUntil) { bubble.classList.remove("on"); bubbleWho = null; nextShout = time + 5 + Math.random() * 4; }
+    }
     renderer.render(scene, cam);
     raf = requestAnimationFrame(loop);
   }
