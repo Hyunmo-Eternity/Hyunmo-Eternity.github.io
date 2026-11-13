@@ -949,3 +949,15 @@ html,body{overflow-x:clip}
 .pcard{padding:0;border:8px solid var(--paper);overflow:hidden}
 .pcard img{border-radius:10px}
 .pcard.front::after{inset:0}
+
+/* ---------- 포근한 3D 눈 마을 배경 ---------- */
+.snowworld{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease}
+.snowworld.on{opacity:1}
+.snowworld canvas{display:block;width:100%!important;height:100%!important}
+.snowworld::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.28) 60%,rgba(255,248,250,.42))}
+.snow3d .photobg{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .snowworld::after{background:linear-gradient(180deg,rgba(10,8,30,.05),rgba(10,8,30,.30))}}
+:root[data-theme="dark"] .snowworld::after{background:linear-gradient(180deg,rgba(10,8,30,.05),rgba(10,8,30,.30))}
+/* 눈 속 카드: 살짝 비치는 서리 유리처럼 */
+.snow3d section{background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+:root.ios.snow3d section{backdrop-filter:none;-webkit-backdrop-filter:none;background:color-mix(in srgb,var(--paper) 93%,transparent)}

@@ -311,3 +311,168 @@ export async function mountTree(box, photos) {
   loop(performance.now());
   return { wake: () => loop(performance.now()) };
 }
+
+/* =========================================================
+   3. 포근한 눈 마을 배경 (홈페이지 전체 뒤에서 움직여요)
+   ========================================================= */
+export async function mountSnowWorld(box) {
+  let T;
+  try { T = await three(); } catch (e) { return null; }
+  const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "low-power" });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, IOS ? 0.9 : 1));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  box.appendChild(renderer.domElement);
+
+  const scene = new T.Scene();
+  const cam = new T.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 400);
+  const glow = glowTex(T);
+
+  // 낮(포근한 분홍 눈 오는 날) / 밤(보랏빛 눈 내리는 밤) 색
+  const PAL = {
+    day: { top: "#c9d6f3", mid: "#f4dbe6", low: "#ffeedd", fog: 0xf3e4ea, ground: 0xf8f8fd, hemiSky: 0xdfe6ff, hemiGnd: 0xffe4d6, sun: 0xfff0dd, win: 0xffc66b, sunI: 1.1, hemiI: 1.25 },
+    night: { top: "#0f1430", mid: "#2b2552", low: "#5a3a62", fog: 0x2a2346, ground: 0xb9c3e6, hemiSky: 0x6070b8, hemiGnd: 0x3a2a4a, sun: 0xaab8ff, win: 0xffb347, sunI: 0.45, hemiI: 0.75 },
+  };
+  const isDark = () => document.documentElement.dataset.theme === "dark" || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+  const skyCv = document.createElement("canvas"); skyCv.width = 4; skyCv.height = 256;
+  const skyTex = new T.CanvasTexture(skyCv); skyTex.colorSpace = T.SRGBColorSpace; scene.background = skyTex;
+  scene.fog = new T.FogExp2(0xffffff, 0.022);
+  const hemi = new T.HemisphereLight(0xffffff, 0xffffff, 1); scene.add(hemi);
+  const sun = new T.DirectionalLight(0xffffff, 1); sun.position.set(-20, 30, 10); scene.add(sun);
+
+  // 눈 덮인 언덕
+  const gGeo = new T.PlaneGeometry(260, 260, 90, 90); gGeo.rotateX(-Math.PI / 2);
+  const gp = gGeo.attributes.position;
+  for (let i = 0; i < gp.count; i++) {
+    const x = gp.getX(i), z = gp.getZ(i);
+    gp.setY(i, Math.sin(x * 0.06) * 1.6 + Math.cos(z * 0.05 + x * 0.02) * 2.2 + Math.sin((x + z) * 0.12) * 0.5 + Math.max(0, -z - 40) * 0.08);
+  }
+  gGeo.computeVertexNormals();
+  const groundMat = new T.MeshLambertMaterial({ color: 0xffffff });
+  scene.add(new T.Mesh(gGeo, groundMat));
+  const groundY = (x, z) => Math.sin(x * 0.06) * 1.6 + Math.cos(z * 0.05 + x * 0.02) * 2.2 + Math.sin((x + z) * 0.12) * 0.5 + Math.max(0, -z - 40) * 0.08;
+
+  // 눈 쌓인 전나무 (한꺼번에 그려서 가볍게)
+  const TN = IOS ? 46 : 70;
+  const coneG = new T.ConeGeometry(1, 1, 7), capG = new T.ConeGeometry(1, 1, 7);
+  const green = new T.InstancedMesh(coneG, new T.MeshLambertMaterial({ color: 0x2f6b4f, flatShading: true }), TN * 3);
+  const caps = new T.InstancedMesh(capG, new T.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), TN * 3);
+  const trunkM = new T.InstancedMesh(new T.CylinderGeometry(0.18, 0.22, 1, 6), new T.MeshLambertMaterial({ color: 0x6b4a36 }), TN);
+  const M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), P = new T.Vector3();
+  for (let i = 0; i < TN; i++) {
+    let x, z;
+    do { x = (Math.random() - 0.5) * 140; z = -8 - Math.random() * 110; } while (Math.abs(x) < 7 && z > -40);
+    const h = 3 + Math.random() * 4, y = groundY(x, z);
+    trunkM.setMatrixAt(i, M.compose(P.set(x, y + 0.4, z), Q.identity(), S.set(1, 0.9, 1)));
+    for (let k = 0; k < 3; k++) {
+      const s = (1 - k * 0.27) * h * 0.38, yy = y + 0.8 + k * h * 0.27 + h * 0.18;
+      green.setMatrixAt(i * 3 + k, M.compose(P.set(x, yy, z), Q.identity(), S.set(s, h * 0.34, s)));
+      caps.setMatrixAt(i * 3 + k, M.compose(P.set(x, yy + h * 0.1, z), Q.identity(), S.set(s * 0.62, h * 0.16, s * 0.62)));
+    }
+  }
+  scene.add(green, caps, trunkM);
+
+  // 따뜻한 불빛이 새어 나오는 오두막
+  const houses = [], smokes = [];
+  const winMat = new T.MeshBasicMaterial({ color: 0xffc66b });
+  const wallMat = new T.MeshLambertMaterial({ color: 0xc98b6b }), roofMat = new T.MeshLambertMaterial({ color: 0xffffff }), chimMat = new T.MeshLambertMaterial({ color: 0x8a5a48 });
+  const roofG = new T.CylinderGeometry(0, 1, 1, 4, 1); roofG.rotateY(Math.PI / 4);
+  [[-9, -22, 0.4], [7, -30, -0.5], [-3, -46, 0.2], [16, -52, -0.3], [-17, -40, 0.6]].forEach(([x, z, r], i) => {
+    const g = new T.Group(), y = groundY(x, z);
+    const wall = new T.Mesh(new T.BoxGeometry(3.4, 2.2, 2.8), wallMat); wall.position.y = 1.1; g.add(wall);
+    const roof = new T.Mesh(roofG, roofMat); roof.scale.set(3.1, 1.7, 2.6); roof.position.y = 3.05; g.add(roof);
+    const ch = new T.Mesh(new T.BoxGeometry(0.5, 1.2, 0.5), chimMat); ch.position.set(0.9, 3.4, 0.3); g.add(ch);
+    for (const wx of [-0.8, 0.8]) { const w = new T.Mesh(new T.PlaneGeometry(0.7, 0.7), winMat); w.position.set(wx, 1.2, 1.41); g.add(w); }
+    const door = new T.Mesh(new T.PlaneGeometry(0.6, 1.1), new T.MeshLambertMaterial({ color: 0x6b3f2e })); door.position.set(0, 0.55, 1.41); g.add(door);
+    const halo = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffb35c, transparent: true, opacity: 0.55, blending: T.AdditiveBlending, depthWrite: false }));
+    halo.position.set(0, 1.2, 1.7); halo.scale.set(4.2, 2.6, 1); g.add(halo);
+    g.position.set(x, y, z); g.rotation.y = r; scene.add(g); houses.push(halo);
+    for (let k = 0; k < 6; k++) {
+      const sm = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
+      sm.userData = { base: new T.Vector3(x + Math.cos(r) * 0.9 + Math.sin(r) * 0.3, y + 4.1, z - Math.sin(r) * 0.9 + Math.cos(r) * 0.3), t: k / 6 };
+      scene.add(sm); smokes.push(sm);
+    }
+  });
+
+  // 길을 따라 놓인 따뜻한 등불
+  const lamps = [];
+  for (let i = 0; i < 14; i++) {
+    const z = -6 - i * 6, x = (i % 2 ? 4.2 : -4.2) + Math.sin(i) * 0.6, y = groundY(x, z);
+    const post = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, 1.6, 5), chimMat); post.position.set(x, y + 0.8, z); scene.add(post);
+    const l = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xffcf7a, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false }));
+    l.position.set(x, y + 1.75, z); l.scale.setScalar(1.6); scene.add(l); lamps.push(l);
+  }
+
+  // 눈송이: 가까운 것 · 중간 · 먼 것 세 층
+  const layers = [];
+  [[IOS ? 500 : 800, 0.55, 14], [IOS ? 700 : 1100, 0.32, 34], [IOS ? 600 : 900, 0.2, 70]].forEach(([n, size, range]) => {
+    const pos = new Float32Array(n * 3), spd = new Float32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * range * 2; pos[i * 3 + 1] = Math.random() * 30; pos[i * 3 + 2] = -Math.random() * range * 1.6 + 6; spd[i] = 0.6 + Math.random() * 0.9; }
+    const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(pos, 3));
+    const pts = new T.Points(g, new T.PointsMaterial({ size, map: glow, color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false }));
+    scene.add(pts); layers.push({ pos, spd, g, range, n });
+  });
+
+  // 포근한 빛망울 (카메라 가까이 흐릿하게)
+  const bokeh = [];
+  const bCols = [0xffc2d6, 0xffe2a8, 0xcfe0ff, 0xffd0b5];
+  for (let i = 0; i < 10; i++) {
+    const b = new T.Sprite(new T.SpriteMaterial({ map: glow, color: bCols[i % 4], transparent: true, opacity: 0.18, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+    b.userData = { x: (Math.random() - 0.5) * 16, y: 2 + Math.random() * 7, z: -2 - Math.random() * 6, ph: Math.random() * 6 };
+    b.scale.setScalar(1.5 + Math.random() * 2.5); scene.add(b); bokeh.push(b);
+  }
+
+  function applyPalette() {
+    const p = isDark() ? PAL.night : PAL.day;
+    const g = skyCv.getContext("2d"), gr = g.createLinearGradient(0, 0, 0, 256);
+    gr.addColorStop(0, p.top); gr.addColorStop(0.55, p.mid); gr.addColorStop(1, p.low);
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 256); skyTex.needsUpdate = true;
+    scene.fog.color.setHex(p.fog); groundMat.color.setHex(p.ground);
+    hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGnd); hemi.intensity = p.hemiI;
+    sun.color.setHex(p.sun); sun.intensity = p.sunI; winMat.color.setHex(p.win);
+    lamps.forEach(l => l.material.opacity = isDark() ? 1 : 0.75);
+  }
+  applyPalette();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyPalette);
+  new MutationObserver(applyPalette).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  // 마우스 · 기울기 · 스크롤에 따라 천천히 움직이는 카메라
+  let mx = 0, my = 0, tmx = 0, tmy = 0, sc = 0;
+  addEventListener("pointermove", e => { tmx = e.clientX / innerWidth - 0.5; tmy = e.clientY / innerHeight - 0.5; }, { passive: true });
+  addEventListener("resize", () => { cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+  let raf = 0, last = performance.now(), time = 0, on = true;
+  function loop(now) {
+    cancelAnimationFrame(raf);
+    if (!on || document.hidden) return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+    mx += (tmx - mx) * 0.04; my += (tmy - my) * 0.04;
+    const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    sc += (Math.min(1, scrollY / max) - sc) * 0.06;
+    // 스크롤하면 마을 안쪽으로 천천히 걸어 들어가요
+    cam.position.set(Math.sin(time * 0.07) * 1.5 + mx * 2.5, 4.2 - sc * 1.2 + Math.sin(time * 0.5) * 0.08 - my * 0.8, 10 - sc * 34);
+    cam.lookAt(mx * 4, 3 - sc * 0.8 - my, cam.position.z - 20);
+    for (const L of layers) {
+      const p = L.pos;
+      for (let i = 0; i < L.n; i++) {
+        p[i * 3 + 1] -= L.spd[i] * dt * 1.4;
+        p[i * 3] += Math.sin(time * 0.8 + i) * dt * 0.35;
+        if (p[i * 3 + 1] < -1) { p[i * 3 + 1] = 28; p[i * 3 + 2] = cam.position.z - Math.random() * L.range * 1.6 + 6; }
+      }
+      L.g.attributes.position.needsUpdate = true;
+    }
+    smokes.forEach(s => {
+      const u = s.userData, t = (u.t + time * 0.12) % 1;
+      s.position.copy(u.base).add(P.set(Math.sin(t * 6 + u.t * 9) * 0.4 + t * 1.2, t * 5, 0));
+      s.scale.setScalar(0.6 + t * 2.4); s.material.opacity = 0.45 * Math.sin(t * Math.PI);
+    });
+    houses.forEach((h, i) => h.material.opacity = 0.45 + Math.sin(time * 2.2 + i * 1.3) * 0.08 + Math.sin(time * 7.1 + i) * 0.04);  // 벽난로 불빛처럼 일렁여요
+    bokeh.forEach(b => { const u = b.userData; b.position.set(cam.position.x + u.x + Math.sin(time * 0.3 + u.ph) * 1.2, u.y + Math.cos(time * 0.25 + u.ph) * 0.8, cam.position.z + u.z); });
+    renderer.render(scene, cam);
+    raf = requestAnimationFrame(loop);
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { last = performance.now(); loop(last); } });
+  loop(last);
+  box.classList.add("on");
+  return { pause() { on = false; cancelAnimationFrame(raf); }, resume() { if (!on) { on = true; last = performance.now(); loop(last); } } };
+}
