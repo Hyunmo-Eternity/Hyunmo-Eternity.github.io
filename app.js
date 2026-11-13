@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611131628";
-import { T, DISC } from "./i18n.js?v=202611131628";
-import * as PL from "./music/playlist.js?v=202611131628";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611131648";
+import { T, DISC } from "./i18n.js?v=202611131648";
+import * as PL from "./music/playlist.js?v=202611131648";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,19 +11,19 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611131628";
+import * as PH from "./photos.js?v=202611131648";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611131628";
-import { HOPE } from "./hope.js?v=202611131628";
-import { checkText } from "./filter.js?v=202611131628";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611131628";
-import * as TH from "./theme.js?v=202611131628";
-import * as GM from "./games.js?v=202611131628";
+import { QUIZ } from "./quiz.js?v=202611131648";
+import { HOPE } from "./hope.js?v=202611131648";
+import { checkText } from "./filter.js?v=202611131648";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611131648";
+import * as TH from "./theme.js?v=202611131648";
+import * as GM from "./games.js?v=202611131648";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
 /* ---------- 3D 입장 인트로 · 거대한 트리 ---------- */
 let treeMounted = false, treeWaiting = false;
-const SCENE_URL = "./scene3d.js?v=202611131628";
+const SCENE_URL = "./scene3d.js?v=202611131648";
 (function startIntro() {
   const box = document.getElementById("intro3d");
   if (!box) return;
@@ -44,6 +44,37 @@ function startTree() {
   const A = sh(mo), B = sh(ym);
   while (A.length || B.length) { if (A.length) pics.push(A.shift()); if (A.length) pics.push(A.shift()); if (B.length) pics.push(B.shift()); }
   import(SCENE_URL).then(m => m.mountTree(box, pics)).catch(() => { box.hidden = true; });
+}
+
+/* ---------- 살아 움직이는 화면: 스크롤하면 하나씩 떠오르고, 사진은 천천히 숨 쉬듯 움직여요 ---------- */
+const MOTION = !matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window;
+const RV_SEL = "section > h2, section > .intro, section > p, .card, .note, .gitem, .clip, .ev, .ltcard, .dcard, .hope, .appcard, .hearts, .counts, .buypill, .opensign, .chips, .gtabs, .ghow, .facts > *, .disc > *, .links a";
+const rvIO = MOTION ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add("rvin"); rvIO.unobserve(e.target); }
+}), { rootMargin: "0px 0px -6% 0px" }) : null;
+const liveIO = MOTION ? new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle("alive", e.isIntersecting)), { rootMargin: "60px" }) : null;
+let rvT = 0;
+function scanReveal() {
+  if (!MOTION) return;
+  let k = 0;
+  document.querySelectorAll(RV_SEL).forEach(el => {
+    if (el.dataset.rv) return; el.dataset.rv = "1";
+    if (el.closest(".intro3d,.player,.bar,#manage")) return;
+    el.classList.add("rv"); el.style.setProperty("--rvd", (k++ % 6) * 60 + "ms"); rvIO.observe(el);
+  });
+  document.querySelectorAll(".gitem img, .pcard img").forEach(img => { if (!img.dataset.lv) { img.dataset.lv = "1"; liveIO.observe(img); } });
+}
+if (MOTION) {
+  document.documentElement.classList.add("motion");
+  new MutationObserver(() => { clearTimeout(rvT); rvT = setTimeout(scanReveal, 120); }).observe(document.body, { childList: true, subtree: true });
+  addEventListener("load", scanReveal); setTimeout(scanReveal, 300);
+  // 사진 더미: 마우스나 손가락을 따라 살짝 기울어져요
+  addEventListener("pointermove", e => {
+    const st = e.target.closest && e.target.closest(".stack"); if (!st) return;
+    const r = st.getBoundingClientRect();
+    st.style.setProperty("--tx", ((e.clientX - r.left) / r.width - .5).toFixed(3)); st.style.setProperty("--ty", ((e.clientY - r.top) / r.height - .5).toFixed(3));
+  }, { passive: true });
+  addEventListener("pointerout", e => { const st = e.target.closest && e.target.closest(".stack"); if (st && !st.contains(e.relatedTarget)) { st.style.setProperty("--tx", 0); st.style.setProperty("--ty", 0); } });
 }
 
 /* ---------- 앱 설치 (홈 화면에 추가) ---------- */

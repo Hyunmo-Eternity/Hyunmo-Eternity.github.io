@@ -901,3 +901,51 @@ html,body{overflow-x:clip}
 .tree3d .tcanvas canvas{display:block;width:100%!important;height:100%!important;cursor:grab}
 .tree3d .thint{position:absolute;left:0;right:0;bottom:10px;margin:0;text-align:center;font-size:12px;color:rgba(255,255,255,.75);pointer-events:none}
 .hero.compact .tree3d{display:none}
+
+/* ---------- 살아 움직이는 화면 ---------- */
+@media (prefers-reduced-motion: no-preference){
+  /* 스크롤하면 하나씩 떠올라요 */
+  .motion .rv{opacity:0;translate:0 26px;scale:.98;transition:opacity .7s ease var(--rvd,0ms),translate .8s cubic-bezier(.2,.8,.2,1) var(--rvd,0ms),scale .8s cubic-bezier(.2,.8,.2,1) var(--rvd,0ms)}
+  .motion .rv.rvin{opacity:1;translate:0 0;scale:1}
+
+  /* 사진 더미: 둥실둥실 떠 있고, 손을 따라 살짝 기울어요 */
+  .stack{transform:perspective(900px) rotateX(calc(var(--ty,0) * -10deg)) rotateY(calc(var(--tx,0) * 12deg));transition:transform .5s ease-out;animation:stackfloat 6s ease-in-out infinite}
+  @keyframes stackfloat{0%,100%{translate:0 0}50%{translate:0 -8px}}
+  .pcard{overflow:hidden}
+  /* 앞 사진은 천천히 다가오고 흘러가요 (켄 번즈) */
+  .pcard.front img.alive{animation:kenburns 9s ease-in-out infinite alternate}
+  .pcard:not(.front) img{animation:none}
+  @keyframes kenburns{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.13) translate(-2%,-3%)}}
+  /* 빛이 사진 위를 스르륵 지나가요 */
+  .pcard.front::after{content:"";position:absolute;inset:8px;border-radius:12px;pointer-events:none;
+    background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.38) 48%,transparent 62%);background-size:260% 100%;animation:shine 5.5s ease-in-out infinite}
+  @keyframes shine{0%,55%{background-position:130% 0}100%{background-position:-60% 0}}
+  .pcard:not(.front){animation:breathe 5s ease-in-out infinite}
+  .pcard:nth-child(2n){animation-delay:-1.7s}
+  @keyframes breathe{0%,100%{scale:1}50%{scale:1.015}}
+
+  /* 사진 갤러리: 사진마다 다른 속도로 숨 쉬듯 */
+  .gitem img.alive{animation:gbreathe 7s ease-in-out infinite alternate}
+  .gitem:nth-child(3n) img.alive{animation-duration:9s;animation-direction:alternate-reverse}
+  .gitem:nth-child(4n+1) img.alive{animation-duration:8s}
+  @keyframes gbreathe{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.09) translate(2%,-2%)}}
+  .gitem:hover img{animation-play-state:paused;transform:scale(1.12)}
+
+  /* 하트 버튼은 두근두근 */
+  .heartbtn .hb-ico{display:inline-block;animation:heartbeat 1.6s ease-in-out infinite}
+  @keyframes heartbeat{0%,40%,100%{transform:scale(1)}10%{transform:scale(1.22)}20%{transform:scale(1)}30%{transform:scale(1.14)}}
+
+  /* 이름표 · D-day 카드가 살짝 흔들흔들 */
+  .nametag{animation:tagsway 4.5s ease-in-out infinite}
+  @keyframes tagsway{0%,100%{rotate:-1.2deg}50%{rotate:1.2deg}}
+  .counts .count{animation:stackfloat 5s ease-in-out infinite}
+  .counts .count:nth-child(2){animation-delay:-2.5s}
+
+  /* 카드들은 손을 올리면 살짝 떠올라요 */
+  .clip,.note,.ev,.ltcard,.gitem{transition:box-shadow .3s ease,translate .3s ease}
+  @media (hover:hover){.clip:hover,.note:hover,.ev:hover,.gitem:hover{translate:0 -4px;box-shadow:0 14px 30px color-mix(in srgb,var(--petal) 22%,transparent)}}
+}
+/* 사진이 움직여도 흰 테두리 밖으로 안 나가게: 여백 대신 테두리로 */
+.pcard{padding:0;border:8px solid var(--paper);overflow:hidden}
+.pcard img{border-radius:10px}
+.pcard.front::after{inset:0}

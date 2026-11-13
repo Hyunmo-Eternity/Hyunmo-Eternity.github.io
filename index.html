@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=Noto+Sans+Thai:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=202611131628">
+<link rel="stylesheet" href="style.css?v=202611131648">
 <script>
 /* 입장 인트로는 창마다 한 번만 (움직임 줄이기 설정이면 건너뛰어요) */
 try { if (sessionStorage.getItem("hm_intro") || matchMedia("(prefers-reduced-motion: reduce)").matches || /[?&]nointro/.test(location.search)) document.documentElement.classList.add("nointro"); } catch (e) {}
@@ -74,6 +74,10 @@ try { if (sessionStorage.getItem("hm_intro") || matchMedia("(prefers-reduced-mot
   </header>
 
   <div class="hero">
+    <div class="tree3d" id="tree3d" hidden>
+      <div class="tcanvas"></div>
+      <p class="thint" data-i="tree_hint">🎄 끌어서 트리를 돌려보세요</p>
+    </div>
     <a class="soonlive" id="soonlive" href="#schedule" hidden></a>
     <div class="kicker" data-i="kicker">현모 팬이 만든 비공식 팬사이트</div>
     <div class="ring">
@@ -84,10 +88,6 @@ try { if (sessionStorage.getItem("hm_intro") || matchMedia("(prefers-reduced-mot
     <div class="counts">
       <div class="count"><small data-i="since">데뷔한 지</small><b id="dplus">D+0</b></div>
       <div class="count hi"><small data-i="bday">생일까지</small><b id="dbday">D-0</b></div>
-    </div>
-    <div class="tree3d" id="tree3d" hidden>
-      <div class="tcanvas"></div>
-      <p class="thint" data-i="tree_hint">🎄 끌어서 트리를 돌려보세요</p>
     </div>
     <div class="opensign" id="opensign" hidden aria-live="polite"><span class="olamp" aria-hidden="true"></span><b class="osign"></b><span class="otext"></span></div>
     <a class="buypill" href="#music"><span aria-hidden="true">💿</span> <span data-i="buy_pill">KiT 앨범 구매하기</span> →</a>
@@ -441,6 +441,6 @@ try { if (sessionStorage.getItem("hm_intro") || matchMedia("(prefers-reduced-mot
   <audio id="audio" preload="metadata"></audio>
 </div>
 
-<script type="module" src="app.js?v=202611131628"></script>
+<script type="module" src="app.js?v=202611131648"></script>
 </body>
 </html>
