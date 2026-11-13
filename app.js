@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, limit, setDoc, addDoc, deleteDoc, getDoc, serverTimestamp, increment, where, getCountFromServer, getDocs, documentId } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611092148";
-import { T, DISC } from "./i18n.js?v=202611092148";
-import * as PL from "./music/playlist.js?v=202611092148";
+import { firebaseConfig, DEFAULT_LIVE_URL } from "./firebase-config.js?v=202611131628";
+import { T, DISC } from "./i18n.js?v=202611131628";
+import * as PL from "./music/playlist.js?v=202611131628";
 // 들어올 때마다 노래 순서를 섞어요 (playlist.js 에 SHUFFLE = false 를 넣으면 적힌 순서대로 나와요)
 const PLAYLIST = (() => {
   const list = [...(PL.PLAYLIST || [])];
@@ -11,16 +11,41 @@ const PLAYLIST = (() => {
   return list;
 })();
 const AUTO_START = PL.AUTO_START !== false;
-import * as PH from "./photos.js?v=202611092148";
+import * as PH from "./photos.js?v=202611131628";
 const PHOTOS = PH.PHOTOS || [], PHOTO_SECONDS = PH.PHOTO_SECONDS || 5, YANGMAL = PH.YANGMAL || [], YANGMAL_VIDEOS = PH.YANGMAL_VIDEOS || [], SNOWMAN_PHOTOS = (PH.SNOWMAN_PHOTOS && PH.SNOWMAN_PHOTOS.length) ? PH.SNOWMAN_PHOTOS : (PH.PHOTOS || []);
-import { QUIZ } from "./quiz.js?v=202611092148";
-import { HOPE } from "./hope.js?v=202611092148";
-import { checkText } from "./filter.js?v=202611092148";
-import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611092148";
-import * as TH from "./theme.js?v=202611092148";
-import * as GM from "./games.js?v=202611092148";
+import { QUIZ } from "./quiz.js?v=202611131628";
+import { HOPE } from "./hope.js?v=202611131628";
+import { checkText } from "./filter.js?v=202611131628";
+import { SHOP_URL, PRODUCT_URL, SEARCH_WORD } from "./shop.js?v=202611131628";
+import * as TH from "./theme.js?v=202611131628";
+import * as GM from "./games.js?v=202611131628";
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 if (IOS) document.documentElement.classList.add("ios");
+/* ---------- 3D 입장 인트로 · 거대한 트리 ---------- */
+let treeMounted = false, treeWaiting = false;
+const SCENE_URL = "./scene3d.js?v=202611131628";
+(function startIntro() {
+  const box = document.getElementById("intro3d");
+  if (!box) return;
+  if (document.documentElement.classList.contains("nointro")) { box.remove(); return; }
+  document.documentElement.classList.add("introon");
+  const end = () => { document.documentElement.classList.remove("introon"); if (treeWaiting) { treeWaiting = false; startTree(); } };
+  import(SCENE_URL).then(m => m.runIntro(box, { onDone: end })).catch(() => { box.remove(); end(); });
+})();
+function startTree() {
+  const box = document.getElementById("tree3d");
+  if (!box || treeMounted || !XMAS) return;
+  if (document.documentElement.classList.contains("introon")) { treeWaiting = true; return; }   // 인트로가 끝난 뒤에 켜요
+  treeMounted = true; box.hidden = false;
+  const pics = [];
+  const mo = [...PH.PHOTOS, ...(PH.SNOWMAN_PHOTOS || [])], ym = [...(PH.YANGMAL || [])];
+  // 모모님 사진과 양말이 사진을 번갈아 섞어요
+  const sh = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+  const A = sh(mo), B = sh(ym);
+  while (A.length || B.length) { if (A.length) pics.push(A.shift()); if (A.length) pics.push(A.shift()); if (B.length) pics.push(B.shift()); }
+  import(SCENE_URL).then(m => m.mountTree(box, pics)).catch(() => { box.hidden = true; });
+}
+
 /* ---------- 앱 설치 (홈 화면에 추가) ---------- */
 const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 let installEvt = null;
@@ -1312,7 +1337,7 @@ function apply() {
   const t = T[lang]; document.documentElement.lang = lang;
   document.querySelectorAll("[data-i]").forEach(el => { const v = t[el.dataset.i]; if (v != null) el.textContent = v; });
   document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
-  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); renderAppCard(); renderOnline(); if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
+  counts(); disc(); renderNotes(); renderClips(); renderSuggest(); renderPhotos(); renderHearts(); renderEvents(); renderEvSuggest(); if (dogStarted) renderDog(); GM.langGames(); renderAppCard(); renderOnline(); if ($("iskip")) $("iskip").textContent = T[lang].intro_skip; if (location.hash === "#request") renderRequests(); renderVotes(); renderQuiz(); renderLive(); renderPlayer(); renderAdmin(); renderTicker(); renderCelebrate();
   $("send").textContent = mine ? t.b_edit : t.b_post;
 }
 document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
@@ -1739,6 +1764,7 @@ function route() {
   if (page === "music") setTimeout(loadVotes, 0);
   if (page === "request") setTimeout(() => loadRequests(), 0);
   if (page === "dog") setTimeout(startDog, 0);
+  if (page === "profile") setTimeout(startTree, 0);
   if (page === "games") setTimeout(startGamesPage, 0); else GM.stopGames();
   parkFrames();
   const sec = document.getElementById(page);
