@@ -3,6 +3,14 @@
 const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js";
 let THREE = null;
 async function three() { if (!THREE) THREE = await import(THREE_URL); return THREE; }
+// 진짜 3D 사슴 모델 (Quaternius "Stag", CC0 공개 라이선스)
+const JSM = "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/";
+let stagP = null;
+function loadStag() {
+  if (!stagP) stagP = Promise.all([import(JSM + "loaders/GLTFLoader.js"), import(JSM + "utils/SkeletonUtils.js")])
+    .then(([{ GLTFLoader }, SU]) => new Promise((ok, no) => new GLTFLoader().load("stag.glb", g => ok({ g, SU }), undefined, no)));
+  return stagP;
+}
 
 const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const DPR = () => Math.min(window.devicePixelRatio || 1, IOS ? 1.25 : 1.5);
@@ -669,7 +677,40 @@ export async function mountSnowWorld(box, opts = {}) {
   const reins = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(1.0, 1.0, 0.3), new T.Vector3(2.9, 1.7, 0.5), new T.Vector3(4.6, 1.9, 0), new T.Vector3(2.9, 1.7, -0.5), new T.Vector3(1.0, 1.0, -0.3)]), reinMat);
   team.add(reins);
   // 땅 위를 걸어 다니는 루돌프
-  const walker = reindeer(true); walker.scale.setScalar(1.05); scene.add(walker);
+  let walker = reindeer(true); walker.scale.setScalar(1.05); scene.add(walker);
+
+  // 진짜 사슴 모델로 바꿔 끼워요 (못 불러오면 위의 사슴이 그대로 있어요)
+  loadStag().then(({ g, SU }) => {
+    g.scene.updateMatrixWorld(true);
+    const box = new T.Box3().setFromObject(g.scene, true), size = box.getSize(new T.Vector3());   // 뼈대까지 계산한 진짜 크기
+    const clipOf = n => g.animations.find(a => a.name === n) || g.animations.find(a => a.name.endsWith("|" + n));
+    function mk(rudolph, clip, height) {
+      const wrap = new T.Group(), root = SU.clone(g.scene);
+      const k = height / size.y;
+      root.scale.multiplyScalar(k); root.position.y = -box.min.y * k; root.rotation.y = Math.PI / 2;   // 앞을 +x 쪽으로
+      root.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = false; } });
+      wrap.add(root);
+      const mixer = new T.AnimationMixer(root), act = mixer.clipAction(clipOf(clip));
+      act.play(); act.time = Math.random() * act.getClip().duration;
+      const head = root.getObjectByName("Head") || root;
+      wrap.userData = { mixer, head, act, clips: { walk: mixer.clipAction(clipOf("Walk")), eat: mixer.clipAction(clipOf("Eating")), idle: mixer.clipAction(clipOf("Idle")) } };
+      if (rudolph) {
+        const tip = root.getObjectByName("Head_end") || head;
+        const nose = new T.Mesh(new T.SphereGeometry(1, 14, 12), new T.MeshBasicMaterial({ color: 0xff2d3a }));
+        tip.add(nose); wrap.updateMatrixWorld(true);
+        const ws = tip.getWorldScale(new T.Vector3()).x;
+        nose.scale.setScalar(0.07 * height / 2.5 / ws);   // 실제 크기 약 7cm 빨간 코
+        const ng = new T.Sprite(new T.SpriteMaterial({ map: glow, color: 0xff3b4a, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+        ng.scale.setScalar(10); nose.add(ng); wrap.userData.noseGlow = ng; wrap.userData.nose = nose;
+      }
+      return wrap;
+    }
+    flyers.forEach((r, i) => {
+      const d = mk(i === 2, "Gallop", 2.1);
+      d.position.copy(r.position); d.position.y = 0.1; team.add(d); team.remove(r); flyers[i] = d;
+    });
+    const w = mk(true, "Walk", 2.5); scene.remove(walker); scene.add(w); walker = w;
+  }).catch(() => {});
 
   // 말풍선 (메리 크리스마스!)
   const bubble = document.createElement("div"); bubble.className = "sw-bubble"; bubble.setAttribute("aria-hidden", "true"); document.body.appendChild(bubble);
@@ -723,17 +764,20 @@ export async function mountSnowWorld(box, opts = {}) {
     team.rotateX(-Math.cos(ft) * 0.25);   // 돌 때 살짝 기울어요
     flyers.forEach((r, i) => {
       r.position.y = 0.35 + Math.sin(time * 6 + i) * 0.12;
-      walkLegs(r, time * 9 + i * 0.7, true);
+      if (r.userData.mixer) r.userData.mixer.update(dt * 1.15); else walkLegs(r, time * 9 + i * 0.7, true);
     });
     sleigh.userData.arm.rotation.x = -2.4 + Math.sin(time * 6) * 0.35;
-    flyers[2].userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 5) * 0.4;
+    flyers[2].userData.noseGlow && (flyers[2].userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 5) * 0.4);
     // 땅 위 루돌프: 나무 사이를 왔다 갔다
     const WA = clamp(halfW(15) * 1.15, 4, 11), wz = cam.position.z - 15, wcyc = time * 0.09 % 2, goingRight = wcyc < 1, wx = goingRight ? -WA + wcyc * 2 * WA : WA - (wcyc - 1) * 2 * WA;
-    walker.position.set(wx, groundY(wx, wz) + 0.02 + Math.abs(Math.sin(time * 4.2)) * 0.04, wz);
+    walker.position.set(wx, groundY(wx, wz) + (walker.userData.mixer ? -0.05 : 0.02 + Math.abs(Math.sin(time * 4.2)) * 0.04), wz);
     walker.rotation.y = goingRight ? 0 : Math.PI;
-    walkLegs(walker, time * 4.2, false);
-    walker.userData.neck.rotation.z = -0.75 + Math.sin(time * 4.2 * 2) * 0.05;   // 걸을 때 고개가 끄덕끄덕
-    walker.userData.head.rotation.z = -0.35 + Math.sin(time * 4.2 * 2 + 0.6) * 0.06;
+    if (walker.userData.mixer) walker.userData.mixer.update(dt);
+    else {
+      walkLegs(walker, time * 4.2, false);
+      walker.userData.neck.rotation.z = -0.75 + Math.sin(time * 4.2 * 2) * 0.05;   // 걸을 때 고개가 끄덕끄덕
+      walker.userData.head.rotation.z = -0.35 + Math.sin(time * 4.2 * 2 + 0.6) * 0.06;
+    }
     walker.userData.noseGlow.material.opacity = 0.6 + Math.sin(time * 4) * 0.4;
     // 말풍선: 산타와 루돌프가 번갈아 "메리 크리스마스!"
     if (time > nextShout && !bubbleWho) { bubbleWho = Math.random() < 0.6 ? "santa" : "rudolph"; bubbleUntil = time + 3.4; bubble.textContent = say(bubbleWho); bubble.classList.add("on"); }
